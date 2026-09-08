@@ -24,6 +24,18 @@ public final class ArmorService {
         return true;
     }
 
+    public void remove(Player p) {
+        ItemStack[] oldArmor = p.getInventory().getArmorContents();
+        p.getInventory().setArmorContents(new ItemStack[4]);
+        for (ItemStack item : oldArmor) returnItemSafely(p, item);
+        ItemStack main = p.getInventory().getItemInMainHand();
+        p.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+        returnItemSafely(p, main);
+        ItemStack off = p.getInventory().getItemInOffHand();
+        p.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+        returnItemSafely(p, off);
+    }
+
     private int levelFor(String mode) {
         if (mode == null) throw new IllegalArgumentException("Armor mode required.");
         String x = mode.trim().toLowerCase(Locale.ROOT);
