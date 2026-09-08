@@ -37,20 +37,38 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         if (normalized == null) { sender.sendMessage("§7[§bUOP§7] §cThat command form is not supported. Use /uop help."); return true; }
         return delegate.onCommand(sender, command, label, normalized);
     }
+
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> corrected = contextual(args);
         if (corrected != null) return filter(corrected, args[args.length - 1]);
         return delegate.onTabComplete(sender, command, alias, args);
     }
+
     private List<String> contextual(String[] a) {
         if (a.length < 2) return null;
         String root = a[0].toLowerCase(Locale.ROOT);
         if (root.equals("armor")) return armorTab(a);
+        if (root.equals("checkpoint")) return checkpointTab(a);
         if (root.equals("enchant") || root.equals("disenchant")) return enchantTab(a, root.equals("disenchant"));
         if (root.equals("inv")) return invTab(a);
         if (root.equals("name") && a.length >= 4 && a[1].equalsIgnoreCase("tag")) return tagTab(a);
         return null;
     }
+
+    private List<String> checkpointTab(String[] a) {
+        if (a.length == 2) return List.of("save", "tp", "list", "delete", "clear");
+        String action = a[1].toLowerCase(Locale.ROOT);
+        if (action.equals("save")) {
+            if (a.length == 3) return null;
+            if (a.length >= 4) return players();
+        } else if (action.equals("tp") || action.equals("delete")) {
+            if (a.length == 3) return new ArrayList<>(plugin.checkpoints().list());
+        } else if (action.equals("clear")) {
+            if (a.length == 3) return List.of("all");
+        }
+        return null;
+    }
+
     private List<String> armorTab(String[] a) {
         if (a.length == 2) return List.of("set","save","list","delete","give","weapon");
         String action=a[1].toLowerCase(Locale.ROOT);
@@ -64,6 +82,7 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
             default:return null;
         }
     }
+
     private List<String> invTab(String[] a) {
         if(a.length==2)return INV_ACTIONS;
         String action=a[1].toLowerCase(Locale.ROOT);
@@ -77,10 +96,14 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         if(action.equals("back")){if(a.length==3)return players();if(a.length==4)return INV_TIMES;return null;}
         return null;
     }
+
     private List<String> backupNames(String target){if(target==null||target.startsWith("@")||target.contains(","))return List.of();Player player=Bukkit.getPlayerExact(target);return player==null||!player.isOnline()?List.of():new ArrayList<>(plugin.inventory().backups(player));}
+
     private List<String> enchantTab(String[] a,boolean remove){if(a.length<2)return null;String scope=a[1].toLowerCase(Locale.ROOT);if(remove){if(a.length==2)return List.of("all","armor","equipment","hand","inventory");if(a.length==3)return players();if(scope.equals("armor")){if(a.length==4)return ARMOR_SLOTS;if(a.length==5)return enchantments();}else if(scope.equals("equipment")){if(a.length==4)return List.of("mainhand","offhand","head","chest","legs","feet");if(a.length==5)return enchantments();}else if(scope.equals("hand")){if(a.length==4)return HAND_SLOTS;if(a.length==5)return enchantments();}else if(scope.equals("all")||scope.equals("inventory")){if(a.length==4)return enchantments();}return List.of();}if(a.length==2)return List.of("all","armor","equipment","mainhand","offhand","inventory");if(a.length==3)return players();if(a.length==4&&isEnchantScope(scope))return enchantments();if(a.length==5&&isEnchantScope(scope))return levels255();return List.of();}
     private boolean isEnchantScope(String scope){return switch(scope){case "all","armor","equipment","mainhand","offhand","inventory"->true;default->false;};}
+
     private List<String> tagTab(String[] a){String action=a[2].toLowerCase(Locale.ROOT);if(a.length==5&&(action.equals("create")||action.equals("edit")))return TAG_COLORS;if(a.length==6&&(action.equals("create")||action.equals("edit")))return BOOLEAN_VALUES;if(a.length==7&&(action.equals("create")||action.equals("edit")))return BOOLEAN_VALUES;if(a.length==4&&(action.equals("give")||action.equals("change")||action.equals("remove")))return players();if(a.length==5&&(action.equals("give")||action.equals("change")))return tags();if(a.length==4&&action.equals("delete"))return tags();return null;}
+
     private List<String> players(){List<String> out=new ArrayList<>(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());out.addAll(List.of("@a","@e","@p","@r","@s"));return out;}
     private List<String> loadouts(){return new ArrayList<>(plugin.armor().loadouts());}
     private List<String> tags(){return new ArrayList<>(plugin.names().tags());}
@@ -91,7 +114,50 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     private List<String> levels10(){List<String> out=new ArrayList<>();for(int i=1;i<=10;i++)out.add(String.valueOf(i));return out;}
     private List<String> levels255(){List<String> out=new ArrayList<>();for(int i=1;i<=255;i++)out.add(String.valueOf(i));return out;}
     private List<String> filter(List<String> values,String prefix){String p=prefix==null?"":prefix.toLowerCase(Locale.ROOT);return values.stream().filter(x->x.toLowerCase(Locale.ROOT).startsWith(p)).distinct().sorted().toList();}
-    private String[] normalize(String[] args){if(args.length<2)return args;if(!"armor".equalsIgnoreCase(args[0])){if("enchant".equalsIgnoreCase(args[0])){String scope=args[1].toLowerCase(Locale.ROOT);if(scope.equals("hand"))return null;if((scope.equals("armor")||scope.equals("equipment"))&&(args.length==4||args.length==5))return insert(args,3,"all");}if("disenchant".equalsIgnoreCase(args[0])&&(args[1].equalsIgnoreCase("mainhand")||args[1].equalsIgnoreCase("offhand")))return null;return args;}if("set".equalsIgnoreCase(args[1])&&args.length>=7&&"enchanted".equalsIgnoreCase(args[4]))return merge(args,4,5);if("give".equalsIgnoreCase(args[1])&&args.length>=8&&"direct".equalsIgnoreCase(args[3])&&"enchanted".equalsIgnoreCase(args[5]))return merge(args,5,6);if("weapon".equalsIgnoreCase(args[1])&&args.length>=7&&"set".equalsIgnoreCase(args[2])&&"enchanted".equalsIgnoreCase(args[4]))return merge(args,4,5);if("name".equalsIgnoreCase(args[0])&&"tag".equalsIgnoreCase(args[1])&&"change".equalsIgnoreCase(args[2])){String[] out=Arrays.copyOf(args,args.length);out[2]="give";return out;}if("inv".equalsIgnoreCase(args[0])&&"backup-delete".equalsIgnoreCase(args[1])){String[] out=Arrays.copyOf(args,args.length);out[1]="backupdelete";return out;}return args;}
+
+    private String[] normalize(String[] args){
+        if(args.length<2)return args;
+        String root=args[0].toLowerCase(Locale.ROOT);
+
+        if(root.equals("armor")){
+            if("set".equalsIgnoreCase(args[1])&&args.length>=7&&"enchanted".equalsIgnoreCase(args[4]))return merge(args,4,5);
+            if("give".equalsIgnoreCase(args[1])&&args.length>=8&&"direct".equalsIgnoreCase(args[3])&&"enchanted".equalsIgnoreCase(args[5]))return merge(args,5,6);
+            if("weapon".equalsIgnoreCase(args[1])&&args.length>=7&&"set".equalsIgnoreCase(args[2])&&"enchanted".equalsIgnoreCase(args[4]))return merge(args,4,5);
+            return args;
+        }
+
+        if(root.equals("enchant")){
+            String scope=args[1].toLowerCase(Locale.ROOT);
+            if(scope.equals("hand"))return null;
+            if((scope.equals("armor")||scope.equals("equipment"))&&(args.length==4||args.length==5))return insert(args,3,"all");
+            return args;
+        }
+
+        if(root.equals("disenchant")){
+            if(args[1].equalsIgnoreCase("mainhand")||args[1].equalsIgnoreCase("offhand"))return null;
+            return args;
+        }
+
+        if(root.equals("name")&&args.length>=3&&"tag".equalsIgnoreCase(args[1])&&"change".equalsIgnoreCase(args[2])){
+            String[] out=Arrays.copyOf(args,args.length);out[2]="give";return out;
+        }
+
+        if(root.equals("inv")&&"backup-delete".equalsIgnoreCase(args[1])){
+            String[] out=Arrays.copyOf(args,args.length);out[1]="backupdelete";return out;
+        }
+
+        if(root.equals("checkpoint")&&"save".equalsIgnoreCase(args[1])&&args.length>4){
+            String[] out=new String[4];
+            out[0]=args[0];
+            out[1]=args[1];
+            out[2]=args[2];
+            out[3]=String.join(",",Arrays.copyOfRange(args,3,args.length));
+            return out;
+        }
+
+        return args;
+    }
+
     private String[] insert(String[] args,int index,String value){List<String> out=new ArrayList<>(Arrays.asList(args));out.add(index,value);return out.toArray(String[]::new);}
     private String[] merge(String[] args,int first,int second){List<String> out=new ArrayList<>(Arrays.asList(args));out.set(first,args[first]+" "+args[second]);out.remove(second);return out.toArray(String[]::new);}
 }
