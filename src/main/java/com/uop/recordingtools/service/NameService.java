@@ -58,7 +58,6 @@ public final class NameService {
 
     public void refreshAll() { for (Player p : Bukkit.getOnlinePlayers()) refresh(p); }
 
-    /** Adventure component used by Paper's modern chat renderer. */
     public Component chatName(Player p) {
         String tag = tagOf(p);
         if (tag == null) return Component.text(p.getName());
@@ -67,7 +66,7 @@ public final class NameService {
 
     public void create(String id, String color, boolean bold, boolean italic, String text) {
         validateId(id);
-        text = strip(text);
+        text = normalizeText(text);
         String val = legacy(color) + (bold ? "§l" : "") + (italic ? "§o" : "") + text;
         store.set("tags." + id + ".text", val);
         store.set("tags." + id + ".bold", bold);
@@ -111,7 +110,8 @@ public final class NameService {
     private String tagOf(Player p) {
         String id = tagId(p);
         if (id == null || !store.data().contains("tags." + id)) return null;
-        return store.data().getString("tags." + id + ".text", "");
+        String text = store.data().getString("tags." + id + ".text");
+        return text == null || text.isEmpty() ? null : text;
     }
 
     private void validateId(String id) {
@@ -119,7 +119,11 @@ public final class NameService {
             throw new IllegalArgumentException("Invalid tag id.");
     }
 
-    private String strip(String s) { return s == null ? "" : s.length() > 32 ? s.substring(0, 32) : s; }
+    private String normalizeText(String s) {
+        if (s == null) return "";
+        s = ChatColor.stripColor(s);
+        return s.length() > 32 ? s.substring(0, 32) : s;
+    }
 
     private String normalizeColor(String c) {
         return c == null ? "white" : c.trim().toLowerCase(Locale.ROOT);
