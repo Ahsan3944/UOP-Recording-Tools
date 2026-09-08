@@ -3,6 +3,7 @@ package com.uop.recordingtools.listener;
 import com.uop.recordingtools.UopRecordingToolsPlugin;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -82,7 +83,20 @@ public final class RecordingListener implements Listener {
     }
 
     @EventHandler public void interact(PlayerInteractEvent e) {
-        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
+        if (!plugin.freeze().frozen(e.getPlayer())) return;
+        if (!plugin.freeze().full(e.getPlayer()) && isArmor(e.getItem())
+                && (e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_AIR
+                || e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK)) return;
+        e.setCancelled(true);
+    }
+
+    private boolean isArmor(org.bukkit.inventory.ItemStack item) {
+        if (item == null || item.getType().isAir()) return false;
+        Material type = item.getType();
+        String name = type.name();
+        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE")
+                || name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS")
+                || type == Material.TURTLE_HELMET;
     }
 
     @EventHandler public void interactEntity(PlayerInteractEntityEvent e) {
