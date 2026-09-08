@@ -4,6 +4,7 @@ import com.uop.recordingtools.command.UopCommandCompat;
 import com.uop.recordingtools.listener.RecordingListener;
 import com.uop.recordingtools.service.*;
 import com.uop.recordingtools.storage.DataStore;
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -18,6 +19,7 @@ public final class UopRecordingToolsPlugin extends JavaPlugin {
     private InventoryService inventory;
     private NameService names;
     private ProtectionService protection;
+    private int inventoryHistoryTask = -1;
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -41,12 +43,21 @@ public final class UopRecordingToolsPlugin extends JavaPlugin {
     }
 
     private void scheduleInventoryHistory() {
+        if (inventoryHistoryTask != -1) {
+            Bukkit.getScheduler().cancelTask(inventoryHistoryTask);
+        }
         long sampleTicks = Math.max(1L, getConfig().getLong("history-sample-ticks", 100L));
-        getServer().getScheduler().runTaskTimer(this, inventory::tickHistory, sampleTicks, sampleTicks);
+        inventoryHistoryTask = getServer().getScheduler().runTaskTimer(this, inventory::tickHistory, sampleTicks, sampleTicks).getTaskId();
     }
 
-    @Override public void onDisable() { if (store != null) store.save(); }
-    public void reloadPlugin() { inventory.resetRuntime(); reloadConfig(); store.load(); names.refreshAll(); }
+    @Override public void onDisable() {
+        if (inventoryHistoryTask != -1) {
+            Bukkit.getScheduler().cancelTask(inventoryHistoryTask);
+            inventoryHistoryTask = -1;
+        }
+        if (store != null) store.save();
+    }
+    public void reloadPlugin() { inventory.resetRuntime(); reloadConfig(); store.load(); scheduleInventoryHistory(); names.refreshAll(); }
     public DataStore store(){return store;} public PermissionService permissions(){return permissions;}
     public ArmorService armor(){return armor;} public CheckpointService checkpoints(){return checkpoints;}
     public DamageService damage(){return damage;} public EnchantService enchant(){return enchant;}
