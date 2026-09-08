@@ -24,30 +24,59 @@ public final class ProtectionService {
         store.saveNow();
     }
 
-    public void remove(Player p) { store.remove(b(p.getName())); store.saveNow(); }
+    public void remove(Player p) {
+        for (String base : matchingBases(p.getName(), p.getUniqueId())) store.remove(base);
+        store.saveNow();
+    }
 
     public Set<String> list() {
         var s = store.data().getConfigurationSection("protection");
-        return s == null ? Set.of() : s.getKeys(false);
+        if (s == null) return Set.of();
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (String key : s.getKeys(false)) {
+            String name = store.data().getString("protection." + key + ".name", key);
+            names.add(name);
+        }
+        return Collections.unmodifiableSet(names);
     }
 
     public void reset() { store.remove("protection"); store.saveNow(); }
 
     public boolean allowed(String name, UUID uuid, InetAddress addr) {
-        String base = b(name);
-        if (!store.data().contains(base)) return true;
+        List<String> bases = matchingBases(name, uuid);
+        if (bases.isEmpty()) return true;
 
-        String expectedUuid = store.data().getString(base + ".uuid", "");
-        String expectedIp = store.data().getString(base + ".ip", "");
-        String mode = normalizeMode(store.data().getString(base + ".mode", "both"));
-        boolean uuidMatches = uuid != null && uuid.toString().equalsIgnoreCase(expectedUuid);
-        boolean ipMatches = !expectedIp.isBlank() && Objects.equals(ip(addr), expectedIp);
+        for (String base : bases) {
+            String expectedUuid = store.data().getString(base + ".uuid", "");
+            String expectedIp = store.data().getString(base + ".ip", "");
+            String mode = normalizeMode(store.data().getString(base + ".mode", "both"));
+            boolean uuidMatches = uuid != null && uuid.toString().equalsIgnoreCase(expectedUuid);
+            boolean ipMatches = !expectedIp.isBlank() && Objects.equals(ip(addr), expectedIp);
+            if (switch (mode) {
+                case "uuid" -> uuidMatches;
+                case "ip" -> ipMatches;
+                default -> uuidMatches && ipMatches;
+            }) return true;
+        }
+        return false;
+    }
 
-        return switch (mode) {
-            case "uuid" -> uuidMatches;
-            case "ip" -> ipMatches;
-            default -> uuidMatches && ipMatches;
-        };
+    private List<String> matchingBases(String name, UUID uuid) {
+        List<String> matches = new ArrayList<>();
+        String direct = b(name);
+        if (store.data().contains(direct)) matches.add(direct);
+        var section = store.data().getConfigurationSection("protection");
+        if (section == null) return matches;
+        String uuidText = uuid == null ? "" : uuid.toString();
+        for (String key : section.getKeys(false)) {
+            String base = "protection." + key;
+            if (base.equalsIgnoreCase(direct) || matches.contains(base)) continue;
+            String storedUuid = store.data().getString(base + ".uuid", "");
+            String storedName = store.data().getString(base + ".name", key);
+            if ((!uuidText.isBlank() && uuidText.equalsIgnoreCase(storedUuid))
+                    || storedName.equalsIgnoreCase(name)) matches.add(base);
+        }
+        return matches;
     }
 
     private String normalizeMode(String mode) {
