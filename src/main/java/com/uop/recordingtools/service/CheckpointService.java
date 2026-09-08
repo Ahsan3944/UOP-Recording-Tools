@@ -115,7 +115,15 @@ public final class CheckpointService {
     private boolean isEligible(Player player) {
         if (player == null) return false;
         GameMode mode = player.getGameMode();
-        return mode == GameMode.SURVIVAL || mode == GameMode.CREATIVE;
+        if (mode != GameMode.SURVIVAL && mode != GameMode.CREATIVE) return false;
+
+        // Fabric explicitly excludes Mocap/FakePlayer implementations from checkpoints.
+        Class<?> type = player.getClass();
+        String className = type.getName().toLowerCase(Locale.ROOT);
+        String packageName = type.getPackageName().toLowerCase(Locale.ROOT);
+        return !className.contains("mocap")
+                && !className.contains("fakeplayer")
+                && !packageName.contains("mocap");
     }
 
     private double number(Object value) {
