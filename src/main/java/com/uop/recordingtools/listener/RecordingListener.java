@@ -33,6 +33,10 @@ public final class RecordingListener implements Listener {
         plugin.names().refresh(e.getPlayer());
     }
 
+    @EventHandler public void respawn(PlayerRespawnEvent e) {
+        plugin.names().refresh(e.getPlayer());
+    }
+
     @EventHandler public void chat(AsyncChatEvent e) {
         Player player = e.getPlayer();
         if (!plugin.names().hasTag(player)) return;
