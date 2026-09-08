@@ -26,7 +26,7 @@ public final class UopRecordingToolsPlugin extends JavaPlugin {
         armor = new ArmorService(this, store);
         checkpoints = new CheckpointService(this, store);
         damage = new DamageService(this, store);
-        enchant = new EnchantService(this);
+        enchant = new EnchantService();
         freeze = new FreezeService(this, store);
         inventory = new InventoryService(this, store);
         names = new NameService(this, store);
