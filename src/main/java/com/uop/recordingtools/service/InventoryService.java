@@ -203,22 +203,15 @@ public final class InventoryService {
 
         Map<?, ?> best = null;
         long bestTime = Long.MIN_VALUE;
-        Map<?, ?> oldest = null;
-        long oldestTime = Long.MAX_VALUE;
         for (Map<?, ?> m : h) {
             Object t = m.get("time");
             if (!(t instanceof Number n)) continue;
             long timestamp = n.longValue();
-            if (timestamp < oldestTime) {
-                oldestTime = timestamp;
-                oldest = m;
-            }
             if (timestamp <= target && timestamp > bestTime) {
                 bestTime = timestamp;
                 best = m;
             }
         }
-        if (best == null) best = oldest;
         if (best == null) return false;
         Object items = best.get("items");
         if (items instanceof List<?> l) {
