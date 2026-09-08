@@ -20,10 +20,7 @@ public final class DamageService {
         store.saveNow();
     }
 
-    /**
-     * Priority is exact pair > outgoing > incoming > global.
-     * Rules are selected, not multiplied together.
-     */
+    /** Priority: exact pair > outgoing > incoming > global. Rules are selected, not multiplied. */
     public double multiplier(Entity damager, Entity victim) {
         if (damager instanceof Player a && victim instanceof Player v) {
             String pair = "damage.pairs." + a.getUniqueId() + "." + v.getUniqueId();
@@ -49,8 +46,14 @@ public final class DamageService {
         String normalized = type == null ? "" : type.toLowerCase(Locale.ROOT);
         switch (normalized) {
             case "global" -> store.remove("damage.global");
-            case "outgoing" -> requirePlayer(a, "outgoing", a).ifPresent(x -> store.remove("damage.outgoing." + x.getUniqueId()));
-            case "incoming" -> requirePlayer(a, "incoming", a).ifPresent(x -> store.remove("damage.incoming." + x.getUniqueId()));
+            case "outgoing" -> {
+                if (a == null) throw new IllegalArgumentException("Player is required for outgoing reset.");
+                store.remove("damage.outgoing." + a.getUniqueId());
+            }
+            case "incoming" -> {
+                if (a == null) throw new IllegalArgumentException("Player is required for incoming reset.");
+                store.remove("damage.incoming." + a.getUniqueId());
+            }
             case "pair" -> {
                 if (a == null || b == null) throw new IllegalArgumentException("Two players are required for pair reset.");
                 store.remove("damage.pairs." + a.getUniqueId() + "." + b.getUniqueId());
@@ -63,18 +66,10 @@ public final class DamageService {
 
     public void resetAll() { store.remove("damage"); store.saveNow(); }
 
-    private double storedMultiplier(String path) {
-        return storedMultiplier(path, 1.0);
-    }
+    private double storedMultiplier(String path) { return storedMultiplier(path, 1.0); }
 
     private double storedMultiplier(String path, double fallback) {
-        double value = store.data().getDouble(path, fallback);
-        return clamp(value);
-    }
-
-    private static java.util.Optional<Player> requirePlayer(Player player, String type, Player ignored) {
-        if (player == null) throw new IllegalArgumentException("Player is required for " + type + " reset.");
-        return java.util.Optional.of(player);
+        return clamp(store.data().getDouble(path, fallback));
     }
 
     private double clamp(double x) {
