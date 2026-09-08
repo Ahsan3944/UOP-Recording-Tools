@@ -66,13 +66,23 @@ public final class DamageService {
                 if (a == null || b == null) throw new IllegalArgumentException("Two players are required for pair reset.");
                 store.remove("damage.pairs." + a.getUniqueId() + "." + b.getUniqueId());
             }
-            case "all" -> store.remove("damage");
+            case "all" -> resetAllPlayerRules();
             default -> throw new IllegalArgumentException("Unknown damage reset type: " + type);
         }
         store.saveNow();
     }
 
-    public void resetAll() { store.remove("damage"); store.saveNow(); }
+    /** Clears player-specific rules while preserving the independent global multiplier. */
+    public void resetAll() {
+        resetAllPlayerRules();
+        store.saveNow();
+    }
+
+    private void resetAllPlayerRules() {
+        store.remove("damage.outgoing");
+        store.remove("damage.incoming");
+        store.remove("damage.pairs");
+    }
 
     private double storedMultiplier(String path) { return storedMultiplier(path, 1.0); }
 
