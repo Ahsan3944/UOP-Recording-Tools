@@ -135,7 +135,7 @@ public final class InventoryService {
 
         long windowSeconds = plugin.getConfig().getLong("history-window-seconds", 300L);
         if (windowSeconds > 0) {
-            final long cutoff;
+            long cutoff;
             try {
                 cutoff = Math.subtractExact(now, Math.multiplyExact(windowSeconds, 1000L));
             } catch (ArithmeticException e) {
@@ -143,9 +143,10 @@ public final class InventoryService {
                 // until the normal max-history-snapshots cap is applied.
                 cutoff = Long.MIN_VALUE;
             }
+            final long historyCutoff = cutoff;
             h.removeIf(entry -> {
                 Object value = entry.get("time");
-                return value instanceof Number n && n.longValue() < cutoff;
+                return value instanceof Number n && n.longValue() < historyCutoff;
             });
         }
 
