@@ -1,0 +1,25 @@
+name: UOP-Recording-Tools
+version: '${version}'
+main: com.uop.recordingtools.UopRecordingToolsPlugin
+api-version: '1.21.11'
+author: UltraOP
+description: Production-ready Paper recording and server administration toolkit with feature parity with UltraOP Recording Tools Fabric.
+website: https://github.com/Ahsan3944/UOP-Recording-Tools
+commands:
+  uop:
+    description: UltraOP Recording Tools command root
+    usage: /uop help
+    aliases: [ultraop]
+permissions:
+  uop.use: { default: op }
+  uop.armor: { default: op }
+  uop.checkpoint: { default: op }
+  uop.damage: { default: op }
+  uop.enchant: { default: op }
+  uop.disenchant: { default: op }
+  uop.freeze: { default: op }
+  uop.inv: { default: op }
+  uop.name: { default: op }
+  uop.protect: { default: op }
+  uop.permission: { default: op }
+  uop.admin: { default: op }

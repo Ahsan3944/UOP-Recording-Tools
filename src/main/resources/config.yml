@@ -1,0 +1,3 @@
+history-window-seconds: 300
+history-sample-ticks: 10
+max-history-snapshots: 600
