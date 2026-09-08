@@ -142,9 +142,11 @@ public final class NameService {
     }
 
     private String normalizeText(String s) {
-        if (s == null) return "";
+        if (s == null) throw new IllegalArgumentException("Tag text is required.");
         s = ChatColor.stripColor(s);
-        return s.length() > 32 ? s.substring(0, 32) : s;
+        if (s.isBlank()) throw new IllegalArgumentException("Tag text is required.");
+        if (s.length() > 32) throw new IllegalArgumentException("Tag text must be 32 characters or fewer.");
+        return s;
     }
 
     private String normalizeColor(String c) {
