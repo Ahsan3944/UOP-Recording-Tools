@@ -89,9 +89,9 @@ public final class CheckpointService {
         return tp(name).found();
     }
 
-    public Set<String> list() {
+    public List<String> list() {
         var section = store.data().getConfigurationSection("checkpoints");
-        return section == null ? Set.of() : new TreeSet<>(section.getKeys(false));
+        return section == null ? List.of() : new ArrayList<>(new TreeSet<>(section.getKeys(false)));
     }
 
     public boolean delete(String name) {
