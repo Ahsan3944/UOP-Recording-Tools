@@ -40,10 +40,10 @@ Weapons/tools: sword, mace, axe, bow, crossbow, trident, pickaxe, shovel, hoe.
 Priority is exact pair > outgoing > incoming > global. A zero multiplier changes damage to zero without cancelling the underlying damage event, preserving mechanics such as Wind Charge propulsion.
 
 ### Enchant / Disenchant
-- `/uop enchant <all|armor|equipment|mainhand|offhand|inventory|hand> <targets> <enchantment> [level]`
+- `/uop enchant <all|armor|equipment|mainhand|offhand|inventory> <targets> <enchantment> [level]`
 - `/uop disenchant <all|armor|equipment|hand|inventory> <targets> <enchantment>`
 - Armor and hand scopes accept a slot selector where applicable.
-- Enchantment levels are validated to 1-255.
+- Enchantment levels are validated to 1-255 and cannot exceed the enchantment's native maximum.
 
 ### Freeze
 - `/uop freeze [normal|full] <targets>`
@@ -65,7 +65,6 @@ Normal freeze blocks movement, world interaction, item drop/pickup while permitt
 - `/uop inv backup-delete <player> <name>`
 - `/uop inv record start <player>`
 - `/uop inv record stop <player>`
-- `/uop inv record status`
 - `/uop inv back <player> <seconds|Nm|Nh>`
 - `/uop inv lock <player>` / `unlock <player>`
 
@@ -77,7 +76,6 @@ History is sampled on a configurable tick interval and retained as a bounded rol
 - `/uop name tag edit <id> <color|#RRGGBB> <bold> <italic> <text>`
 - `/uop name tag list`
 - `/uop name tag give <targets> <id>`
-- `/uop name tag change <targets> <id>`
 - `/uop name tag remove <targets>`
 - `/uop name tag delete <id>`
 
