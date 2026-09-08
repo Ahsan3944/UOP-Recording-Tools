@@ -1,6 +1,7 @@
 package com.uop.recordingtools.command;
 
 import com.uop.recordingtools.UopRecordingToolsPlugin;
+import com.uop.recordingtools.service.ArmorService;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -15,11 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Normalizes multi-token command forms before delegating to the main command.
- * Also supplies contextual completions for command forms whose syntax depends
- * on the selected scope/mode.
- */
+/** Normalizes compatibility command forms and supplies contextual TAB completion. */
 public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     private static final List<String> ARMOR_MATERIALS = List.of("leather", "chainmail", "iron", "gold", "diamond", "netherite");
     private static final List<String> ARMOR_MODES = List.of("plain", "enchanted", "max");
@@ -32,8 +29,10 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     private static final List<String> BOOLEAN_VALUES = List.of("true", "false");
 
     private final UopCommand delegate;
+    private final UopRecordingToolsPlugin plugin;
 
     public UopCommandCompat(UopRecordingToolsPlugin delegatePlugin) {
+        this.plugin = delegatePlugin;
         this.delegate = new UopCommand(delegatePlugin);
     }
 
@@ -78,12 +77,18 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
                 if (a.length >= 7) return WEAPONS;
                 return null;
             case "save":
+                if (a.length == 3) return null;
                 if (a.length == 4) return players();
+                return null;
+            case "list":
+                return null;
+            case "delete":
+                if (a.length == 3) return loadouts();
                 return null;
             case "give":
                 if (a.length == 3) return players();
                 if (a.length == 4) return List.of("saved", "direct");
-                if (a.length == 5 && a[3].equalsIgnoreCase("saved")) return List.of("<set_name>");
+                if (a.length == 5 && a[3].equalsIgnoreCase("saved")) return loadouts();
                 if (a.length == 5 && a[3].equalsIgnoreCase("direct")) return ARMOR_MATERIALS;
                 if (a.length == 6 && a[3].equalsIgnoreCase("direct")) return ARMOR_MODES;
                 if (a.length == 7 && a[3].equalsIgnoreCase("direct") && a[5].equalsIgnoreCase("enchanted")) return levels10();
@@ -108,8 +113,8 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         if (a.length == 2) return INV_ACTIONS;
         String action = a[1].toLowerCase(Locale.ROOT);
         if (action.equals("record")) {
-            if (a.length == 3) return List.of("stop", "status");
-            if (a.length == 4 && a[2].equalsIgnoreCase("stop")) return players();
+            if (a.length == 3) return List.of("start", "stop", "status");
+            if (a.length == 4 && (a[2].equalsIgnoreCase("start") || a[2].equalsIgnoreCase("stop"))) return players();
             return null;
         }
         if (action.equals("view") || action.equals("backups") || action.equals("lock") || action.equals("unlock")) {
@@ -197,8 +202,12 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
 
     private List<String> players() {
         List<String> out = new ArrayList<>(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
-        out.addAll(List.of("@a", "@p", "@r", "@s"));
+        out.addAll(List.of("@a", "@e", "@p", "@r", "@s"));
         return out;
+    }
+
+    private List<String> loadouts() {
+        return new ArrayList<>(plugin.armor().loadouts());
     }
 
     private List<String> slots41() {
@@ -248,19 +257,14 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
             if ("enchant".equalsIgnoreCase(args[0])) {
                 String scope = args[1].toLowerCase(Locale.ROOT);
                 if (scope.equals("hand")) return null;
-                if ((scope.equals("armor") || scope.equals("equipment")) && (args.length == 4 || args.length == 5)) {
-                    return insert(args, 3, "all");
-                }
+                if ((scope.equals("armor") || scope.equals("equipment")) && (args.length == 4 || args.length == 5)) return insert(args, 3, "all");
             }
-            if ("disenchant".equalsIgnoreCase(args[0])
-                    && (args[1].equalsIgnoreCase("mainhand") || args[1].equalsIgnoreCase("offhand"))) return null;
+            if ("disenchant".equalsIgnoreCase(args[0]) && (args[1].equalsIgnoreCase("mainhand") || args[1].equalsIgnoreCase("offhand"))) return null;
             return args;
         }
         if ("set".equalsIgnoreCase(args[1]) && args.length >= 7 && "enchanted".equalsIgnoreCase(args[4])) return merge(args, 4, 5);
-        if ("give".equalsIgnoreCase(args[1]) && args.length >= 8
-                && "direct".equalsIgnoreCase(args[3]) && "enchanted".equalsIgnoreCase(args[5])) return merge(args, 5, 6);
-        if ("weapon".equalsIgnoreCase(args[1]) && args.length >= 7
-                && "set".equalsIgnoreCase(args[2]) && "enchanted".equalsIgnoreCase(args[4])) return merge(args, 4, 5);
+        if ("give".equalsIgnoreCase(args[1]) && args.length >= 8 && "direct".equalsIgnoreCase(args[3]) && "enchanted".equalsIgnoreCase(args[5])) return merge(args, 5, 6);
+        if ("weapon".equalsIgnoreCase(args[1]) && args.length >= 7 && "set".equalsIgnoreCase(args[2]) && "enchanted".equalsIgnoreCase(args[4])) return merge(args, 4, 5);
         return args;
     }
 
