@@ -1,6 +1,5 @@
 package com.uop.recordingtools;
 
-import com.uop.recordingtools.command.UopCommand;
 import com.uop.recordingtools.command.UopCommandCompat;
 import com.uop.recordingtools.listener.RecordingListener;
 import com.uop.recordingtools.service.*;
@@ -32,8 +31,7 @@ public final class UopRecordingToolsPlugin extends JavaPlugin {
         inventory = new InventoryService(this, store);
         names = new NameService(this, store);
         protection = new ProtectionService(this, store);
-        UopCommand command = new UopCommand(this);
-        UopCommandCompat compat = new UopCommandCompat(command);
+        UopCommandCompat compat = new UopCommandCompat(this);
         PluginCommand root = getCommand("uop");
         if (root != null) { root.setExecutor(compat); root.setTabCompleter(compat); }
         getServer().getPluginManager().registerEvents(new RecordingListener(this), this);
