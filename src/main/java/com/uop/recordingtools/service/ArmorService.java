@@ -3,6 +3,7 @@ package com.uop.recordingtools.service;
 import com.uop.recordingtools.storage.DataStore;
 import com.uop.recordingtools.util.Items;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -17,8 +18,8 @@ public final class ArmorService {
         if (chest == null) throw new IllegalArgumentException("Invalid armor material: " + matName);
         int lvl = levelFor(mode);
         ItemStack[] armor = {Items.armor(chest, "head"), Items.armor(chest, "chest"), Items.armor(chest, "legs"), Items.armor(chest, "feet")};
-        if (lvl > 0) for (ItemStack i : armor) enchantArmor(i, lvl);
-        p.getInventory().setArmorContents(armor);
+        if (lvl > 0) for (ItemStack i : armor) enchantAll(i, lvl);
+        replaceArmorSafely(p, armor);
         if (weapons) giveWeapons(p, weaponNames, mode, lvl);
         return true;
     }
@@ -35,14 +36,44 @@ public final class ArmorService {
         throw new IllegalArgumentException("Armor mode must be plain, enchanted 1-10, or max.");
     }
 
-    private void enchantArmor(ItemStack i, int lvl) {
-        var prot = Items.enchantment("protection");
-        if (prot != null) Items.enchant(i, prot, lvl);
+    private void replaceArmorSafely(Player p, ItemStack[] armor) {
+        ItemStack[] old = p.getInventory().getArmorContents();
+        p.getInventory().setArmorContents(armor);
+        for (ItemStack item : old) {
+            if (item == null || item.getType().isAir()) continue;
+            Map<Integer, ItemStack> leftovers = p.getInventory().addItem(item.clone());
+            for (ItemStack leftover : leftovers.values()) p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+        }
+    }
+
+    /** Mirrors the Fabric loadout tiers: add every applicable non-cursed enchantment. */
+    private void enchantAll(ItemStack item, int tier) {
+        if (item == null || item.getType().isAir()) return;
+        for (Enchantment enchantment : Enchantment.values()) {
+            if (isCurse(enchantment) || !enchantment.canEnchantItem(item)) continue;
+            String id = enchantment.getKey().getKey().toLowerCase(Locale.ROOT);
+            if (!allowedAtTier(id, tier)) continue;
+            int level = tier == 10 ? enchantment.getMaxLevel() : Math.min(tier, enchantment.getMaxLevel());
+            if (level >= 1) Items.enchant(item, enchantment, level);
+        }
+    }
+
+    private boolean isCurse(Enchantment enchantment) {
+        String id = enchantment.getKey().getKey().toLowerCase(Locale.ROOT);
+        return id.contains("curse") || id.equals("binding") || id.equals("vanishing");
+    }
+
+    private boolean allowedAtTier(String id, int tier) {
+        if (tier == 1) return id.equals("mending");
+        if (tier == 2) return id.equals("mending") || id.equals("unbreaking");
+        if (tier <= 4) return id.equals("mending") || id.equals("unbreaking") || id.contains("protection") || id.equals("feather_falling") || id.equals("respiration");
+        if (tier <= 6) return allowedAtTier(id, 4) || id.equals("aqua_affinity") || id.equals("depth_strider") || id.equals("soul_speed") || id.equals("swift_sneak");
+        if (tier <= 8) return allowedAtTier(id, 6) || id.equals("thorns") || id.equals("frost_walker") || id.equals("silk_touch") || id.equals("fortune");
+        return true;
     }
 
     public void giveWeapons(Player p, List<String> names, String mode, int lvl) {
-        if (names == null || names.isEmpty()) return;
-        boolean enchanted = !"plain".equalsIgnoreCase(mode);
+        if (names == null || names.isEmpty()) throw new IllegalArgumentException("Select at least one weapon/tool, or use false.");
         for (String n : names) {
             Material m = switch (n.toLowerCase(Locale.ROOT)) {
                 case "sword" -> Material.NETHERITE_SWORD; case "mace" -> Material.MACE; case "axe" -> Material.NETHERITE_AXE;
@@ -52,13 +83,9 @@ public final class ArmorService {
             };
             if (m == null) throw new IllegalArgumentException("Unknown weapon/tool: " + n);
             ItemStack i = new ItemStack(m);
-            if (enchanted) {
-                if (m.name().contains("SWORD") || m.name().contains("AXE")) Items.enchant(i, Items.enchantment("sharpness"), lvl);
-                if (m == Material.BOW) Items.enchant(i, Items.enchantment("power"), lvl);
-                if (m == Material.CROSSBOW) Items.enchant(i, Items.enchantment("quick_charge"), lvl);
-                if (m == Material.TRIDENT) Items.enchant(i, Items.enchantment("impaling"), lvl);
-            }
-            p.getInventory().addItem(i);
+            if (!"plain".equalsIgnoreCase(mode)) enchantAll(i, lvl);
+            Map<Integer, ItemStack> leftovers = p.getInventory().addItem(i);
+            for (ItemStack leftover : leftovers.values()) p.getWorld().dropItemNaturally(p.getLocation(), leftover);
         }
     }
 
