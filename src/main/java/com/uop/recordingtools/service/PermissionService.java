@@ -33,8 +33,10 @@ public final class PermissionService {
             if ("all".equals(n)) {
                 changed |= !l.isEmpty();
                 l.clear();
+            } else if ("*".equals(n)) {
+                changed |= l.removeIf(x -> normalizeStored(x).equals("*"));
             } else {
-                changed |= l.removeIf(x -> x.equalsIgnoreCase(n));
+                changed |= l.removeIf(x -> normalizeStored(x).equals(n));
             }
         }
         if (l.isEmpty()) store.remove(base(p));
