@@ -1,6 +1,8 @@
 package com.uop.recordingtools.listener;
 
 import com.uop.recordingtools.UopRecordingToolsPlugin;
+import io.papermc.paper.chat.ChatRenderer;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,6 +30,13 @@ public final class RecordingListener implements Listener {
     @EventHandler public void join(PlayerJoinEvent e) {
         plugin.freeze().apply(e.getPlayer());
         plugin.names().refresh(e.getPlayer());
+    }
+
+    @EventHandler public void chat(AsyncChatEvent e) {
+        Player player = e.getPlayer();
+        if (plugin.names().tagId(player) == null) return;
+        e.renderer(ChatRenderer.viewerUnaware((source, sourceDisplayName, message) ->
+                plugin.names().chatName(source).append(net.kyori.adventure.text.Component.text(" » ")).append(message)));
     }
 
     @EventHandler public void move(PlayerMoveEvent e) {
@@ -68,37 +77,30 @@ public final class RecordingListener implements Listener {
         if (e.getWhoClicked() instanceof Player p && (plugin.freeze().full(p) || plugin.inventory().locked(p))) e.setCancelled(true);
     }
 
-    /** Normal freeze blocks world interaction; full freeze uses the same block plus all hand actions. */
     @EventHandler public void interact(PlayerInteractEvent e) {
         if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** Full freeze prevents interacting with entities (NPCs, armor stands, vehicles, etc.). */
     @EventHandler public void interactEntity(PlayerInteractEntityEvent e) {
         if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** Full freeze prevents changing the selected hotbar slot. */
     @EventHandler public void held(PlayerItemHeldEvent e) {
         if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** Full freeze prevents consuming food/potions and similar held items. */
     @EventHandler public void consume(PlayerItemConsumeEvent e) {
         if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** Full freeze prevents fishing state changes and hook actions. */
     @EventHandler public void fish(PlayerFishEvent e) {
         if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** Full freeze prevents shearing entities. */
     @EventHandler public void shear(PlayerShearEntityEvent e) {
         if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** Full freeze prevents changing sneak/sprint state used by gameplay actions. */
     @EventHandler public void sneak(PlayerToggleSneakEvent e) {
         if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
     }
