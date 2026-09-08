@@ -1,7 +1,6 @@
 package com.uop.recordingtools.command;
 
 import com.uop.recordingtools.UopRecordingToolsPlugin;
-import com.uop.recordingtools.service.ArmorService;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -77,11 +76,9 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
                 if (a.length >= 7) return WEAPONS;
                 return null;
             case "save":
-                if (a.length == 3) return null;
                 if (a.length == 4) return players();
                 return null;
-            case "list":
-                return null;
+            case "list": return null;
             case "delete":
                 if (a.length == 3) return loadouts();
                 return null;
@@ -104,8 +101,7 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
                 if (a.length == 6 && a[2].equalsIgnoreCase("set") && !a[4].equalsIgnoreCase("enchanted")) return WEAPONS;
                 if (a.length >= 7 && a[2].equalsIgnoreCase("set")) return WEAPONS;
                 return null;
-            default:
-                return null;
+            default: return null;
         }
     }
 
@@ -169,7 +165,7 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         if (a.length < 2) return null;
         String scope = a[1].toLowerCase(Locale.ROOT);
         if (remove) {
-            if (a.length == 2) return List.of("all", "armor", "equipment", "hand", "inventory");
+            if (a.length == 2) return List.of("all", "armor", "equipment", "mainhand", "offhand", "inventory");
             if (a.length == 3) return players();
             if (scope.equals("armor")) {
                 if (a.length == 4) return ARMOR_SLOTS;
@@ -180,8 +176,8 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
             } else if (scope.equals("hand")) {
                 if (a.length == 4) return HAND_SLOTS;
                 if (a.length == 5) return enchantments();
-            } else if (a.length == 4 && (scope.equals("all") || scope.equals("inventory"))) {
-                return enchantments();
+            } else if (scope.equals("mainhand") || scope.equals("offhand") || scope.equals("all") || scope.equals("inventory")) {
+                if (a.length == 4) return enchantments();
             }
             return List.of();
         }
@@ -216,13 +212,8 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         return out;
     }
 
-    private List<String> loadouts() {
-        return new ArrayList<>(plugin.armor().loadouts());
-    }
-
-    private List<String> tags() {
-        return new ArrayList<>(plugin.names().tags());
-    }
+    private List<String> loadouts() { return new ArrayList<>(plugin.armor().loadouts()); }
+    private List<String> tags() { return new ArrayList<>(plugin.names().tags()); }
 
     private List<String> slots41() {
         List<String> out = new ArrayList<>(41);
