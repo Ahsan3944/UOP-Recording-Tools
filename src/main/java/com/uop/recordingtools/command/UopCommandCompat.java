@@ -165,7 +165,7 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         if (a.length < 2) return null;
         String scope = a[1].toLowerCase(Locale.ROOT);
         if (remove) {
-            if (a.length == 2) return List.of("all", "armor", "equipment", "mainhand", "offhand", "inventory");
+            if (a.length == 2) return List.of("all", "armor", "equipment", "hand", "inventory");
             if (a.length == 3) return players();
             if (scope.equals("armor")) {
                 if (a.length == 4) return ARMOR_SLOTS;
@@ -176,7 +176,7 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
             } else if (scope.equals("hand")) {
                 if (a.length == 4) return HAND_SLOTS;
                 if (a.length == 5) return enchantments();
-            } else if (scope.equals("mainhand") || scope.equals("offhand") || scope.equals("all") || scope.equals("inventory")) {
+            } else if (scope.equals("all") || scope.equals("inventory")) {
                 if (a.length == 4) return enchantments();
             }
             return List.of();
