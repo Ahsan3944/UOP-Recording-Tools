@@ -128,9 +128,25 @@ public final class InventoryService {
         String b = "inventories." + p.getUniqueId() + ".history";
         List<Map<?, ?>> h = store.data().getMapList(b);
         Map<String, Object> snap = new LinkedHashMap<>();
-        snap.put("time", System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        snap.put("time", now);
         snap.put("items", snapshot(p));
         h.add(snap);
+
+        long windowSeconds = plugin.getConfig().getLong("history-window-seconds", 300L);
+        if (windowSeconds > 0) {
+            long cutoff;
+            try {
+                cutoff = Math.subtractExact(now, Math.multiplyExact(windowSeconds, 1000L));
+            } catch (ArithmeticException e) {
+                cutoff = Long.MIN_VALUE;
+            }
+            h.removeIf(entry -> {
+                Object value = entry.get("time");
+                return value instanceof Number n && n.longValue() < cutoff;
+            });
+        }
+
         int max = Math.max(1, plugin.getConfig().getInt("max-history-snapshots", 600));
         while (h.size() > max) h.remove(0);
         store.set(b, h);
