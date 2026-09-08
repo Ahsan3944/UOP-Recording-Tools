@@ -1,6 +1,8 @@
 package com.uop.recordingtools.service;
 
 import com.uop.recordingtools.storage.DataStore;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -11,6 +13,7 @@ public final class NameService {
     private final DataStore store;
     private final Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
     private static final String TEAM = "uop_hidden";
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     public NameService(org.bukkit.plugin.java.JavaPlugin p, DataStore s) { store = s; }
 
@@ -29,7 +32,8 @@ public final class NameService {
 
     private void applyTag(Player p) {
         String tag = tagOf(p);
-        String n = tag == null ? p.getName() : tag + " " + p.getName();
+        String n = tag == null ? p.getName() : tag + " [" + ChatColor.RESET + p.getName() + "]";
+        if (tag == null) n = p.getName();
         p.setCustomName(tag == null ? null : n);
         p.setCustomNameVisible(tag != null && !hidden(p));
         p.setDisplayName(n);
@@ -54,6 +58,13 @@ public final class NameService {
     }
 
     public void refreshAll() { for (Player p : Bukkit.getOnlinePlayers()) refresh(p); }
+
+    /** Adventure component used by Paper's modern chat renderer. */
+    public Component chatName(Player p) {
+        String tag = tagOf(p);
+        if (tag == null) return Component.text(p.getName());
+        return LEGACY.deserialize(tag + " [§r" + p.getName() + "]");
+    }
 
     public void create(String id, String color, boolean bold, boolean italic, String text) {
         validateId(id); text = strip(text);
