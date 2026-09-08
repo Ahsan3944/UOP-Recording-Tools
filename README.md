@@ -42,8 +42,9 @@ Priority is exact pair > outgoing > incoming > global. A zero multiplier changes
 ### Enchant / Disenchant
 - `/uop enchant <all|armor|equipment|mainhand|offhand|inventory> <targets> <enchantment> [level]`
 - `/uop disenchant <all|armor|equipment|hand|inventory> <targets> <enchantment>`
-- Armor and hand scopes accept a slot selector where applicable.
+- Armor and disenchant hand scopes accept a slot selector where applicable.
 - Enchantment levels are validated to 1-255 and cannot exceed the enchantment's native maximum.
+- `/uop enchant hand` is intentionally unsupported; use `mainhand` or `offhand`.
 
 ### Freeze
 - `/uop freeze [normal|full] <targets>`
