@@ -1,7 +1,6 @@
 package com.uop.recordingtools.command;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -28,13 +27,18 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
 
     private final UopCommand delegate;
 
-    public UopCommandCompat(UopCommand delegate) {
-        this.delegate = delegate;
+    public UopCommandCompat(UopRecordingToolsPlugin delegatePlugin) {
+        this.delegate = new UopCommand(delegatePlugin);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        return delegate.onCommand(sender, command, label, normalize(args));
+        String[] normalized = normalize(args);
+        if (normalized == null) {
+            sender.sendMessage("§7[§bUOP§7] §cThat command form is not supported. Use /uop help.");
+            return true;
+        }
+        return delegate.onCommand(sender, command, label, normalized);
     }
 
     @Override
@@ -57,39 +61,55 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     private List<String> armorTab(String[] a) {
         if (a.length < 3) return null;
         String action = a[1].toLowerCase(Locale.ROOT);
+        if (!action.equals("weapon")) return null;
 
-        // /uop armor weapon set <targets> <mode> [level] <weapons...>
-        if (action.equals("weapon")) {
-            if (a.length == 3) return List.of("set");
-            if (a.length == 4 && a[2].equalsIgnoreCase("set")) return players();
-            if (a.length == 5 && a[2].equalsIgnoreCase("set")) return ARMOR_MODES;
-            if (a.length == 6 && a[2].equalsIgnoreCase("set") && a[4].equalsIgnoreCase("enchanted")) return levels10();
-            if ((a.length == 6 && a[2].equalsIgnoreCase("set") && !a[4].equalsIgnoreCase("enchanted"))
-                    || (a.length >= 7 && a[2].equalsIgnoreCase("set"))) return WEAPONS;
-            return null;
-        }
-
+        if (a.length == 3) return List.of("set");
+        if (a.length == 4 && a[2].equalsIgnoreCase("set")) return players();
+        if (a.length == 5 && a[2].equalsIgnoreCase("set")) return ARMOR_MODES;
+        if (a.length == 6 && a[2].equalsIgnoreCase("set") && a[4].equalsIgnoreCase("enchanted")) return levels10();
+        if ((a.length == 6 && a[2].equalsIgnoreCase("set") && !a[4].equalsIgnoreCase("enchanted"))
+                || (a.length >= 7 && a[2].equalsIgnoreCase("set"))) return WEAPONS;
         return null;
     }
 
     private List<String> enchantTab(String[] a, boolean remove) {
         if (a.length < 2) return null;
         String scope = a[1].toLowerCase(Locale.ROOT);
-        boolean slotScope = scope.equals("armor") || scope.equals("hand");
 
-        if (a.length == 2) return List.of("all", "armor", "equipment", "mainhand", "offhand", "inventory", "hand");
-        if (a.length == 3) return players();
-
-        if (slotScope) {
-            if (a.length == 4) return scope.equals("armor") ? ARMOR_SLOTS : HAND_SLOTS;
-            if (a.length == 5) return enchantments();
-            if (!remove && a.length == 6) return levels255();
+        if (remove) {
+            if (a.length == 2) return List.of("all", "armor", "equipment", "hand", "inventory");
+            if (a.length == 3) return players();
+            if (scope.equals("armor")) {
+                if (a.length == 4) return ARMOR_SLOTS;
+                if (a.length == 5) return enchantments();
+            } else if (scope.equals("equipment")) {
+                if (a.length == 4) return List.of("mainhand", "offhand", "head", "chest", "legs", "feet");
+                if (a.length == 5) return enchantments();
+            } else if (scope.equals("hand")) {
+                if (a.length == 4) return HAND_SLOTS;
+                if (a.length == 5) return enchantments();
+            } else if (a.length == 4 && (scope.equals("all") || scope.equals("inventory"))) {
+                return enchantments();
+            }
             return List.of();
         }
 
-        if (a.length == 4) return enchantments();
-        if (!remove && a.length == 5) return levels255();
+        // Fabric parity: enchant has no per-slot argument. Armor/equipment are
+        // whole scopes; mainhand/offhand are separate scopes.
+        if (a.length == 2) return List.of("all", "armor", "equipment", "mainhand", "offhand", "inventory");
+        if (a.length == 3) return players();
+        if (a.length == 4 && SetLikeScopes.contains(scope)) return enchantments();
+        if (a.length == 5 && SetLikeScopes.contains(scope)) return levels255();
         return List.of();
+    }
+
+    private static final class SetLikeScopes {
+        private static boolean contains(String scope) {
+            return switch (scope) {
+                case "all", "armor", "equipment", "mainhand", "offhand", "inventory" -> true;
+                default -> false;
+            };
+        }
     }
 
     private List<String> tagTab(String[] a) {
@@ -97,7 +117,6 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         if (a.length == 6 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return List.of("true", "false");
         if (a.length == 7 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return List.of("true", "false");
         if (a.length == 4 && (a[2].equalsIgnoreCase("give") || a[2].equalsIgnoreCase("change") || a[2].equalsIgnoreCase("remove"))) return players();
-        if (a.length == 4 && a[2].equalsIgnoreCase("delete")) return List.of();
         return null;
     }
 
@@ -131,7 +150,20 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     }
 
     private String[] normalize(String[] args) {
-        if (args.length < 2 || !"armor".equalsIgnoreCase(args[0])) return args;
+        if (args.length < 2) return args;
+        if (!"armor".equalsIgnoreCase(args[0])) {
+            if ("enchant".equalsIgnoreCase(args[0]) && args.length >= 4) {
+                String scope = args[1].toLowerCase(Locale.ROOT);
+                if (scope.equals("hand")) return null;
+                if ((scope.equals("armor") || scope.equals("equipment")) && (args.length == 4 || args.length == 5)) {
+                    return insert(args, 3, "all");
+                }
+            }
+            if ("disenchant".equalsIgnoreCase(args[0])
+                    && args.length >= 2
+                    && (args[1].equalsIgnoreCase("mainhand") || args[1].equalsIgnoreCase("offhand"))) return null;
+            return args;
+        }
 
         if ("set".equalsIgnoreCase(args[1]) && args.length >= 7 && "enchanted".equalsIgnoreCase(args[4])) {
             return merge(args, 4, 5);
@@ -145,6 +177,12 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
             return merge(args, 4, 5);
         }
         return args;
+    }
+
+    private String[] insert(String[] args, int index, String value) {
+        List<String> out = new ArrayList<>(Arrays.asList(args));
+        out.add(index, value);
+        return out.toArray(String[]::new);
     }
 
     private String[] merge(String[] args, int first, int second) {
