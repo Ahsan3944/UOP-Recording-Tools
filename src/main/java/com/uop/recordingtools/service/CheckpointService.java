@@ -19,7 +19,7 @@ public final class CheckpointService {
     public SaveResult save(String name, List<Player> requestedPlayers) {
         String normalized = validateName(name);
         Collection<Player> candidates = requestedPlayers == null || requestedPlayers.isEmpty()
-                ? plugin.getServer().getOnlinePlayers() : requestedPlayers;
+                ? new ArrayList<>(plugin.getServer().getOnlinePlayers()) : requestedPlayers;
 
         Map<String, Map<String, Object>> snapshots = new LinkedHashMap<>();
         List<String> skipped = new ArrayList<>();
@@ -82,6 +82,11 @@ public final class CheckpointService {
             }
         }
         return new RestoreResult(true, snapshots.size(), teleported, offline, missingWorlds);
+    }
+
+    /** Compatibility overload for callers that historically supplied an explicit player list. */
+    public RestoreResult tp(String name, List<Player> ignoredPlayers) {
+        return tp(name);
     }
 
     public Set<String> list() {
