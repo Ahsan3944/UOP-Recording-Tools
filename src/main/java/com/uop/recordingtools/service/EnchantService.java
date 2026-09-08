@@ -25,10 +25,10 @@ public final class EnchantService {
         List<ItemStack> out = new ArrayList<>();
         switch (scope.toLowerCase(Locale.ROOT)) {
             case "all" -> {
-                // Storage, armor and offhand are distinct logical scopes. Do not use
-                // getContents() here because it can already contain equipment slots.
+                // Storage, armor, mainhand and offhand are distinct logical scopes.
                 out.addAll(Arrays.asList(inv.getStorageContents()));
                 out.addAll(Arrays.asList(inv.getArmorContents()));
+                out.add(inv.getItemInMainHand());
                 out.add(inv.getItemInOffHand());
             }
             case "armor" -> {
