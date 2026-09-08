@@ -90,8 +90,8 @@ public final class ArmorService {
     }
 
     public void saveLoadout(String name, Player p) {
-        validateName(name);
-        String base = "loadouts." + name;
+        String key = loadoutKey(name);
+        String base = "loadouts." + key;
         store.set(base + ".owner", p.getUniqueId().toString());
         store.set(base + ".ownerName", p.getName());
         store.set(base + ".hotbar", cloneList(Arrays.copyOfRange(p.getInventory().getContents(), 0, 9)));
@@ -102,8 +102,8 @@ public final class ArmorService {
     }
 
     public boolean giveSaved(String name, Player p) {
-        validateName(name);
-        String base = "loadouts." + name;
+        String key = loadoutKey(name);
+        String base = "loadouts." + key;
         if (!store.data().contains(base)) return false;
         List<?> hotbar = store.data().getList(base + ".hotbar");
         if (hotbar == null) {
@@ -142,9 +142,14 @@ public final class ArmorService {
     }
 
     public Set<String> loadouts() { var sec = store.data().getConfigurationSection("loadouts"); return sec == null ? Set.of() : sec.getKeys(false); }
-    public void delete(String name) { validateName(name); store.remove("loadouts." + name); store.saveNow(); }
+    public void delete(String name) { store.remove("loadouts." + loadoutKey(name)); store.saveNow(); }
+
+    private String loadoutKey(String name) {
+        validateName(name);
+        return name.trim().toLowerCase(Locale.ROOT);
+    }
 
     private List<ItemStack> cloneList(ItemStack[] items) { List<ItemStack> out = new ArrayList<>(items.length); for (ItemStack i : items) out.add(i == null ? new ItemStack(Material.AIR) : i.clone()); return out; }
     private ItemStack[] deserialize(List<?> l, int size) { ItemStack[] a = new ItemStack[size]; Arrays.fill(a, new ItemStack(Material.AIR)); if (l != null) for (int i = 0; i < Math.min(size, l.size()); i++) if (l.get(i) instanceof ItemStack x) a[i] = x.clone(); return a; }
-    private void validateName(String name) { if (name == null || name.isBlank() || name.length() > 64 || !name.matches("[A-Za-z0-9_-]+")) throw new IllegalArgumentException("Invalid loadout name."); }
+    private void validateName(String name) { if (name == null || name.isBlank() || name.length() > 32 || !name.matches("[A-Za-z0-9_-]+")) throw new IllegalArgumentException("Invalid loadout name."); }
 }
