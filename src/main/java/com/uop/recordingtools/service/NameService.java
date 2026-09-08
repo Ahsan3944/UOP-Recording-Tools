@@ -66,16 +66,18 @@ public final class NameService {
     }
 
     public void create(String id, String color, boolean bold, boolean italic, String text) {
-        validateId(id); text = strip(text);
+        validateId(id);
+        text = strip(text);
         String val = legacy(color) + (bold ? "§l" : "") + (italic ? "§o" : "") + text;
         store.set("tags." + id + ".text", val);
         store.set("tags." + id + ".bold", bold);
         store.set("tags." + id + ".italic", italic);
-        store.set("tags." + id + ".color", color);
+        store.set("tags." + id + ".color", normalizeColor(color));
         store.saveNow();
     }
 
     public void edit(String id, String color, boolean bold, boolean italic, String text) {
+        validateId(id);
         if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
         create(id, color, bold, italic, text);
         for (Player p : Bukkit.getOnlinePlayers()) if (id.equals(tagId(p))) refresh(p);
@@ -87,6 +89,7 @@ public final class NameService {
     }
 
     public void deleteTag(String id) {
+        validateId(id);
         if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
         store.remove("tags." + id);
         for (Player p : Bukkit.getOnlinePlayers()) if (id.equals(tagId(p))) removeTag(p);
@@ -94,6 +97,7 @@ public final class NameService {
     }
 
     public void give(Player p, String id) {
+        validateId(id);
         if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
         store.set("names.tag." + p.getUniqueId(), id);
         refresh(p);
@@ -102,6 +106,7 @@ public final class NameService {
 
     public void removeTag(Player p) { store.remove("names.tag." + p.getUniqueId()); refresh(p); store.saveNow(); }
     public String tagId(Player p) { return store.data().getString("names.tag." + p.getUniqueId()); }
+    public boolean hasTag(Player p) { return tagOf(p) != null; }
 
     private String tagOf(Player p) {
         String id = tagId(p);
@@ -115,6 +120,10 @@ public final class NameService {
     }
 
     private String strip(String s) { return s == null ? "" : s.length() > 32 ? s.substring(0, 32) : s; }
+
+    private String normalizeColor(String c) {
+        return c == null ? "white" : c.trim().toLowerCase(Locale.ROOT);
+    }
 
     private String legacy(String c) {
         if (c == null) return "";
