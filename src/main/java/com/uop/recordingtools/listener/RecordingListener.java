@@ -10,9 +10,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.EntityCombustByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 
 public final class RecordingListener implements Listener {
     private final UopRecordingToolsPlugin plugin;
@@ -91,6 +93,18 @@ public final class RecordingListener implements Listener {
     }
 
     @EventHandler public void interactEntity(PlayerInteractEntityEvent e) {
+        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler public void armorStand(PlayerArmorStandManipulateEvent e) {
+        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler public void bucketEmpty(PlayerBucketEmptyEvent e) {
+        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler public void bucketFill(PlayerBucketFillEvent e) {
         if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
     }
 
