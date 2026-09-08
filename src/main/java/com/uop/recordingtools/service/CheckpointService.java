@@ -84,8 +84,8 @@ public final class CheckpointService {
         return new RestoreResult(true, snapshots.size(), teleported, offline, missingWorlds);
     }
 
-    /** Compatibility overload for callers that historically supplied an explicit player list. */
-    public RestoreResult tp(String name, List<Player> ignoredPlayers) {
+    /** Compatibility overload for callers that previously supplied explicit target players. */
+    public RestoreResult tp(String name, List<Player> ignoredTargets) {
         return tp(name);
     }
 
