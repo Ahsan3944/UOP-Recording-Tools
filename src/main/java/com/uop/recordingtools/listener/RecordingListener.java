@@ -52,6 +52,10 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void damage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player p && plugin.freeze().full(p)) { e.setCancelled(true); return; }
+        if (e instanceof EntityDamageByEntityEvent x && x.getDamager() instanceof Player p && plugin.freeze().frozen(p)) {
+            e.setCancelled(true);
+            return;
+        }
         var damager = e instanceof EntityDamageByEntityEvent x ? x.getDamager() : null;
         e.setDamage(e.getDamage() * plugin.damage().multiplier(damager, e.getEntity()));
     }
