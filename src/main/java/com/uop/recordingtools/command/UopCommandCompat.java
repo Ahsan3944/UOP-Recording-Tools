@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -32,7 +33,8 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
         if(args.length>=3&&args[0].equalsIgnoreCase("armor")&&args[1].equalsIgnoreCase("remove")){
             if(args.length!=3){sender.sendMessage("§7[§bUOP§7] §cUsage: /uop armor remove <targets>");return true;}
-            if(!sender.hasPermission("uop.armor")&&!(sender instanceof org.bukkit.entity.Player p&&p.isOp())){sender.sendMessage("§7[§bUOP§7] §cYou do not have permission: uop.armor");return true;}
+            boolean allowed=sender instanceof ConsoleCommandSender||sender.hasPermission("uop.armor")||(sender instanceof Player p&&p.isOp())||(sender instanceof Player p&&plugin.permissions().has(p,"uop.armor"));
+            if(!allowed){sender.sendMessage("§7[§bUOP§7] §cYou do not have permission: uop.armor");return true;}
             List<Player> targets=com.uop.recordingtools.util.Targets.players(sender,args[2]);
             if(targets.isEmpty()){sender.sendMessage("§7[§bUOP§7] §cNo matching players: "+args[2]);return true;}
             for(Player target:targets)plugin.armor().remove(target);
