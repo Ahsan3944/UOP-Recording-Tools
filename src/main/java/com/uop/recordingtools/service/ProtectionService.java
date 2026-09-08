@@ -13,10 +13,13 @@ public final class ProtectionService {
 
     public void add(Player p, String mode) {
         mode = normalizeMode(mode);
+        String address = ip(p);
+        if (("ip".equals(mode) || "both".equals(mode)) && address.isBlank())
+            throw new IllegalArgumentException("Cannot register IP protection because the player's address is unavailable.");
         String base = b(p.getName());
         store.set(base + ".name", p.getName());
         store.set(base + ".uuid", p.getUniqueId().toString());
-        store.set(base + ".ip", ip(p));
+        store.set(base + ".ip", address);
         store.set(base + ".mode", mode);
         store.saveNow();
     }
