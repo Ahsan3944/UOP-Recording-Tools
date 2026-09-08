@@ -5,6 +5,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Locale;
+
 public final class DamageService {
     private final DataStore store;
 
@@ -25,30 +27,34 @@ public final class DamageService {
     public double multiplier(Entity damager, Entity victim) {
         if (damager instanceof Player a && victim instanceof Player v) {
             String pair = "damage.pairs." + a.getUniqueId() + "." + v.getUniqueId();
-            if (store.data().contains(pair)) return clamp(store.data().getDouble(pair));
+            if (store.data().contains(pair)) return storedMultiplier(pair);
 
             String out = "damage.outgoing." + a.getUniqueId();
-            if (store.data().contains(out)) return clamp(store.data().getDouble(out));
+            if (store.data().contains(out)) return storedMultiplier(out);
 
             String in = "damage.incoming." + v.getUniqueId();
-            if (store.data().contains(in)) return clamp(store.data().getDouble(in));
+            if (store.data().contains(in)) return storedMultiplier(in);
         } else if (damager instanceof Player a) {
             String out = "damage.outgoing." + a.getUniqueId();
-            if (store.data().contains(out)) return clamp(store.data().getDouble(out));
+            if (store.data().contains(out)) return storedMultiplier(out);
         } else if (victim instanceof Player v) {
             String in = "damage.incoming." + v.getUniqueId();
-            if (store.data().contains(in)) return clamp(store.data().getDouble(in));
+            if (store.data().contains(in)) return storedMultiplier(in);
         }
 
-        return clamp(store.data().getDouble("damage.global", 1.0));
+        return storedMultiplier("damage.global", 1.0);
     }
 
     public void reset(String type, Player a, Player b) {
-        switch (type.toLowerCase()) {
+        String normalized = type == null ? "" : type.toLowerCase(Locale.ROOT);
+        switch (normalized) {
             case "global" -> store.remove("damage.global");
-            case "outgoing" -> store.remove("damage.outgoing." + a.getUniqueId());
-            case "incoming" -> store.remove("damage.incoming." + a.getUniqueId());
-            case "pair" -> store.remove("damage.pairs." + a.getUniqueId() + "." + b.getUniqueId());
+            case "outgoing" -> requirePlayer(a, "outgoing", a).ifPresent(x -> store.remove("damage.outgoing." + x.getUniqueId()));
+            case "incoming" -> requirePlayer(a, "incoming", a).ifPresent(x -> store.remove("damage.incoming." + x.getUniqueId()));
+            case "pair" -> {
+                if (a == null || b == null) throw new IllegalArgumentException("Two players are required for pair reset.");
+                store.remove("damage.pairs." + a.getUniqueId() + "." + b.getUniqueId());
+            }
             case "all" -> store.remove("damage");
             default -> throw new IllegalArgumentException("Unknown damage reset type: " + type);
         }
@@ -57,8 +63,22 @@ public final class DamageService {
 
     public void resetAll() { store.remove("damage"); store.saveNow(); }
 
+    private double storedMultiplier(String path) {
+        return storedMultiplier(path, 1.0);
+    }
+
+    private double storedMultiplier(String path, double fallback) {
+        double value = store.data().getDouble(path, fallback);
+        return clamp(value);
+    }
+
+    private static java.util.Optional<Player> requirePlayer(Player player, String type, Player ignored) {
+        if (player == null) throw new IllegalArgumentException("Player is required for " + type + " reset.");
+        return java.util.Optional.of(player);
+    }
+
     private double clamp(double x) {
         if (Double.isNaN(x) || Double.isInfinite(x)) return 1.0;
-        return Math.max(0, Math.min(10, x));
+        return Math.max(0.0, Math.min(10.0, x));
     }
 }
