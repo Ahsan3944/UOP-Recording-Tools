@@ -50,10 +50,15 @@ public final class DamageService {
             case "incoming" -> store.remove("damage.incoming." + a.getUniqueId());
             case "pair" -> store.remove("damage.pairs." + a.getUniqueId() + "." + b.getUniqueId());
             case "all" -> store.remove("damage");
+            default -> throw new IllegalArgumentException("Unknown damage reset type: " + type);
         }
         store.saveNow();
     }
 
     public void resetAll() { store.remove("damage"); store.saveNow(); }
-    private double clamp(double x) { return Math.max(0, Math.min(10, x)); }
+
+    private double clamp(double x) {
+        if (Double.isNaN(x) || Double.isInfinite(x)) return 1.0;
+        return Math.max(0, Math.min(10, x));
+    }
 }
