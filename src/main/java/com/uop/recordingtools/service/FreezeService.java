@@ -25,15 +25,14 @@ public final class FreezeService {
 
     public void unfreeze(Player player) {
         store.remove("freeze." + player.getUniqueId());
-        player.setWalkSpeed(.2f);
-        player.setFlySpeed(.1f);
         store.saveNow();
     }
 
     public void apply(Player player) {
-        if (!frozen(player) || exempt(player)) return;
-        player.setWalkSpeed(0f);
-        player.setFlySpeed(0f);
+        // Movement is enforced by RecordingListener through PlayerMoveEvent.
+        // Do not mutate walk/fly speeds here: doing so would overwrite custom
+        // server/plugin speeds and restoring hard-coded defaults on unfreeze
+        // would not restore the player's previous state.
     }
 
     public String mode(Player player) {
