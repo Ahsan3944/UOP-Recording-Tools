@@ -135,10 +135,12 @@ public final class InventoryService {
 
         long windowSeconds = plugin.getConfig().getLong("history-window-seconds", 300L);
         if (windowSeconds > 0) {
-            long cutoff;
+            final long cutoff;
             try {
                 cutoff = Math.subtractExact(now, Math.multiplyExact(windowSeconds, 1000L));
             } catch (ArithmeticException e) {
+                // An unrepresentable window effectively means "retain everything"
+                // until the normal max-history-snapshots cap is applied.
                 cutoff = Long.MIN_VALUE;
             }
             h.removeIf(entry -> {
