@@ -32,8 +32,7 @@ public final class NameService {
 
     private void applyTag(Player p) {
         String tag = tagOf(p);
-        String n = tag == null ? p.getName() : tag + " [" + ChatColor.RESET + p.getName() + "]";
-        if (tag == null) n = p.getName();
+        String n = tag == null ? p.getName() : "[" + tag + "§r] " + p.getName();
         p.setCustomName(tag == null ? null : n);
         p.setCustomNameVisible(tag != null && !hidden(p));
         p.setDisplayName(n);
@@ -63,7 +62,7 @@ public final class NameService {
     public Component chatName(Player p) {
         String tag = tagOf(p);
         if (tag == null) return Component.text(p.getName());
-        return LEGACY.deserialize(tag + " [§r" + p.getName() + "]");
+        return LEGACY.deserialize("[" + tag + "§r] " + p.getName());
     }
 
     public void create(String id, String color, boolean bold, boolean italic, String text) {
