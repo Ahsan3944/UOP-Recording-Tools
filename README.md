@@ -41,7 +41,7 @@ Priority is exact pair > outgoing > incoming > global. A zero multiplier changes
 
 ### Enchant / Disenchant
 - `/uop enchant <all|armor|equipment|mainhand|offhand|inventory|hand> <targets> <enchantment> [level]`
-- `/uop disenchant <all|armor|equipment|mainhand|offhand|inventory|hand> <targets> <enchantment>`
+- `/uop disenchant <all|armor|equipment|hand|inventory> <targets> <enchantment>`
 - Armor and hand scopes accept a slot selector where applicable.
 - Enchantment levels are validated to 1-255.
 
@@ -63,11 +63,13 @@ Normal freeze blocks movement, world interaction, item drop/pickup while permitt
 - `/uop inv restore <player> <name>`
 - `/uop inv backups <player>`
 - `/uop inv backup-delete <player> <name>`
-- `/uop inv record <player>` / `stop <player>` / `status`
+- `/uop inv record start <player>`
+- `/uop inv record stop <player>`
+- `/uop inv record status`
 - `/uop inv back <player> <seconds|Nm|Nh>`
 - `/uop inv lock <player>` / `unlock <player>`
 
-History is sampled on a configurable tick interval and retained as a bounded rolling list.
+History is sampled on a configurable tick interval and retained as a bounded rolling list. The default sampling interval is 100 ticks (5 seconds).
 
 ### Names and Tags
 - `/uop name hide <targets>` / `show <targets>`
