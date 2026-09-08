@@ -3,6 +3,7 @@ package com.uop.recordingtools.service;
 import com.uop.recordingtools.storage.DataStore;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Locale;
@@ -22,24 +23,31 @@ public final class DamageService {
 
     /** Priority: exact pair > outgoing > incoming > global. Rules are selected, not multiplied. */
     public double multiplier(Entity damager, Entity victim) {
-        if (damager instanceof Player a && victim instanceof Player v) {
-            String pair = "damage.pairs." + a.getUniqueId() + "." + v.getUniqueId();
+        Player attacker = resolvePlayerAttacker(damager);
+        if (attacker != null && victim instanceof Player target) {
+            String pair = "damage.pairs." + attacker.getUniqueId() + "." + target.getUniqueId();
             if (store.data().contains(pair)) return storedMultiplier(pair);
 
-            String out = "damage.outgoing." + a.getUniqueId();
+            String out = "damage.outgoing." + attacker.getUniqueId();
             if (store.data().contains(out)) return storedMultiplier(out);
 
-            String in = "damage.incoming." + v.getUniqueId();
+            String in = "damage.incoming." + target.getUniqueId();
             if (store.data().contains(in)) return storedMultiplier(in);
-        } else if (damager instanceof Player a) {
-            String out = "damage.outgoing." + a.getUniqueId();
+        } else if (attacker != null) {
+            String out = "damage.outgoing." + attacker.getUniqueId();
             if (store.data().contains(out)) return storedMultiplier(out);
-        } else if (victim instanceof Player v) {
-            String in = "damage.incoming." + v.getUniqueId();
+        } else if (victim instanceof Player target) {
+            String in = "damage.incoming." + target.getUniqueId();
             if (store.data().contains(in)) return storedMultiplier(in);
         }
 
         return storedMultiplier("damage.global", 1.0);
+    }
+
+    private Player resolvePlayerAttacker(Entity damager) {
+        if (damager instanceof Player player) return player;
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) return player;
+        return null;
     }
 
     public void reset(String type, Player a, Player b) {
