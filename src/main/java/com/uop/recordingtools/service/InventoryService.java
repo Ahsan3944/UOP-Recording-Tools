@@ -11,6 +11,8 @@ public final class InventoryService {
     private final JavaPlugin plugin;
     private final DataStore store;
     private final Set<UUID> recording = new HashSet<>();
+    private final Map<UUID, List<ItemStack>> lastSnapshots = new HashMap<>();
+    private final Map<UUID, Integer> lastSelectedSlots = new HashMap<>();
 
     public InventoryService(JavaPlugin p, DataStore s) { plugin = p; store = s; }
 
@@ -124,12 +126,20 @@ public final class InventoryService {
 
     public void startRecord(Collection<Player> ps) {
         recording.addAll(ps.stream().map(Player::getUniqueId).toList());
-        for (Player p : ps) record(p);
+        for (Player p : ps) {
+            lastSnapshots.remove(p.getUniqueId());
+            lastSelectedSlots.remove(p.getUniqueId());
+            record(p);
+        }
         store.saveNow();
     }
 
     public void stopRecord(Collection<Player> ps) {
         recording.removeAll(ps.stream().map(Player::getUniqueId).toList());
+        for (Player p : ps) {
+            lastSnapshots.remove(p.getUniqueId());
+            lastSelectedSlots.remove(p.getUniqueId());
+        }
         store.saveNow();
     }
 
@@ -145,13 +155,24 @@ public final class InventoryService {
 
     public void record(Player p) {
         if (!recording(p)) return;
-        String b = "inventories." + p.getUniqueId() + ".history";
+        List<ItemStack> current = snapshot(p);
+        int selected = p.getInventory().getHeldItemSlot();
+        UUID id = p.getUniqueId();
+        List<ItemStack> previous = lastSnapshots.get(id);
+        Integer previousSelected = lastSelectedSlots.get(id);
+        if (previous != null && previousSelected != null && inventoryEquals(previous, current)
+                && previousSelected == selected) return;
+
+        String b = "inventories." + id + ".history";
         List<Map<?, ?>> h = store.data().getMapList(b);
         Map<String, Object> snap = new LinkedHashMap<>();
         long now = System.currentTimeMillis();
         snap.put("time", now);
-        snap.put("items", snapshot(p));
+        snap.put("selected-slot", selected);
+        snap.put("items", current);
         h.add(snap);
+        lastSnapshots.put(id, cloneSnapshot(current));
+        lastSelectedSlots.put(id, selected);
 
         long windowSeconds = plugin.getConfig().getLong("history-window-seconds", 300L);
         if (windowSeconds > 0) {
@@ -179,6 +200,25 @@ public final class InventoryService {
         List<ItemStack> copy = new ArrayList<>(contents.length);
         for (ItemStack item : contents) copy.add(item == null ? null : item.clone());
         return copy;
+    }
+
+    private List<ItemStack> cloneSnapshot(List<ItemStack> source) {
+        List<ItemStack> copy = new ArrayList<>(source.size());
+        for (ItemStack item : source) copy.add(item == null ? null : item.clone());
+        return copy;
+    }
+
+    private boolean inventoryEquals(List<ItemStack> a, List<ItemStack> b) {
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) {
+            ItemStack x = a.get(i), y = b.get(i);
+            if (x == null || y == null) {
+                if (x != y) return false;
+            } else if (!x.isSimilar(y) || x.getAmount() != y.getAmount()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void restoreSnapshot(Player p, List<?> l) {
@@ -217,6 +257,10 @@ public final class InventoryService {
         if (items instanceof List<?> l) {
             record(p);
             restoreSnapshot(p, l);
+            Object selected = best.get("selected-slot");
+            if (selected instanceof Number n && n.intValue() >= 0 && n.intValue() <= 8) {
+                p.getInventory().setHeldItemSlot(n.intValue());
+            }
             record(p);
             store.saveNow();
             return true;
