@@ -37,8 +37,12 @@ public final class Targets {
         return new ArrayList<>(out.values());
     }
 
+    /**
+     * Resolves a target for command forms that require exactly one player.
+     * Multi-target selectors must not silently resolve to the first match.
+     */
     public static Player one(CommandSender sender, String token) {
-        List<Player> p = players(sender, token);
-        return p.isEmpty() ? null : p.get(0);
+        List<Player> players = players(sender, token);
+        return players.size() == 1 ? players.get(0) : null;
     }
 }
