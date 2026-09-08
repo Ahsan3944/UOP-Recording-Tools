@@ -21,8 +21,6 @@ public final class RecordingListener implements Listener {
 
     public RecordingListener(UopRecordingToolsPlugin plugin) {
         this.plugin = plugin;
-        plugin.getServer().getScheduler().runTaskTimer(plugin, () -> plugin.inventory().tickHistory(), 20L,
-                Math.max(1L, plugin.getConfig().getLong("history-sample-ticks", 10L)));
     }
 
     @EventHandler public void pre(AsyncPlayerPreLoginEvent e) {
@@ -56,15 +54,8 @@ public final class RecordingListener implements Listener {
     @EventHandler public void damage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player p && plugin.freeze().full(p)) { e.setCancelled(true); return; }
         if (e instanceof EntityDamageByEntityEvent x) {
-            if (x.getDamager() instanceof Player p && plugin.freeze().frozen(p)) {
-                e.setCancelled(true);
-                return;
-            }
-            if (x.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player p
-                    && plugin.freeze().frozen(p)) {
-                e.setCancelled(true);
-                return;
-            }
+            if (x.getDamager() instanceof Player p && plugin.freeze().frozen(p)) { e.setCancelled(true); return; }
+            if (x.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player p && plugin.freeze().frozen(p)) { e.setCancelled(true); return; }
         }
         var damager = e instanceof EntityDamageByEntityEvent x ? x.getDamager() : null;
         e.setDamage(e.getDamage() * plugin.damage().multiplier(damager, e.getEntity()));
@@ -84,7 +75,7 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void click(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
-        if (plugin.freeze().full(p) || plugin.inventory().locked(p)) { e.setCancelled(true); return; }
+        if (plugin.freeze().full(p) || plugin.inventory().locked(p)) e.setCancelled(true);
     }
 
     @EventHandler public void drag(InventoryDragEvent e) {
@@ -93,62 +84,26 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void interact(PlayerInteractEvent e) {
         if (!plugin.freeze().frozen(e.getPlayer())) return;
-        if (!plugin.freeze().full(e.getPlayer()) && isArmor(e.getItem())
-                && (e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_AIR
-                || e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK)) return;
+        if (!plugin.freeze().full(e.getPlayer()) && isArmor(e.getItem()) && (e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_AIR || e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK)) return;
         e.setCancelled(true);
     }
 
-    @EventHandler public void interactEntity(PlayerInteractEntityEvent e) {
-        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void armorStand(PlayerArmorStandManipulateEvent e) {
-        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void bucketEmpty(PlayerBucketEmptyEvent e) {
-        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void bucketFill(PlayerBucketFillEvent e) {
-        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void held(PlayerItemHeldEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void consume(PlayerItemConsumeEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void fish(PlayerFishEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void shear(PlayerShearEntityEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void sneak(PlayerToggleSneakEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void sprint(PlayerToggleSprintEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
-
-    @EventHandler public void flight(PlayerToggleFlightEvent e) {
-        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
-    }
+    @EventHandler public void interactEntity(PlayerInteractEntityEvent e) { if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void armorStand(PlayerArmorStandManipulateEvent e) { if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void bucketEmpty(PlayerBucketEmptyEvent e) { if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void bucketFill(PlayerBucketFillEvent e) { if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void held(PlayerItemHeldEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void consume(PlayerItemConsumeEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void fish(PlayerFishEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void shear(PlayerShearEntityEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void sneak(PlayerToggleSneakEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void sprint(PlayerToggleSprintEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
+    @EventHandler public void flight(PlayerToggleFlightEvent e) { if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true); }
 
     private boolean isArmor(org.bukkit.inventory.ItemStack item) {
         if (item == null || item.getType().isAir()) return false;
         Material type = item.getType();
         String name = type.name();
-        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE")
-                || name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS")
-                || type == Material.TURTLE_HELMET;
+        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE") || name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS") || type == Material.TURTLE_HELMET;
     }
 }
