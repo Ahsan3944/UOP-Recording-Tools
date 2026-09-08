@@ -46,7 +46,6 @@ public final class ArmorService {
         }
     }
 
-    /** Mirrors the Fabric loadout tiers: add every applicable non-cursed enchantment. */
     private void enchantAll(ItemStack item, int tier) {
         if (item == null || item.getType().isAir()) return;
         for (Enchantment enchantment : Enchantment.values()) {
@@ -141,7 +140,10 @@ public final class ArmorService {
         for (ItemStack leftover : leftovers.values()) p.getWorld().dropItemNaturally(p.getLocation(), leftover);
     }
 
-    public Set<String> loadouts() { var sec = store.data().getConfigurationSection("loadouts"); return sec == null ? Set.of() : sec.getKeys(false); }
+    public List<String> loadouts() {
+        var sec = store.data().getConfigurationSection("loadouts");
+        return sec == null ? List.of() : new ArrayList<>(sec.getKeys(false));
+    }
     public void delete(String name) { store.remove("loadouts." + loadoutKey(name)); store.saveNow(); }
 
     private String loadoutKey(String name) {
