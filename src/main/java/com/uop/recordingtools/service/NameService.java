@@ -14,6 +14,7 @@ public final class NameService {
     private final Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
     private static final String TEAM = "uop_hidden";
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final Set<String> COLORS = Set.of("black","dark_blue","dark_green","dark_aqua","dark_red","dark_purple","gold","gray","dark_gray","blue","green","aqua","red","light_purple","yellow","white");
 
     public NameService(org.bukkit.plugin.java.JavaPlugin p, DataStore s) { store = s; }
 
@@ -66,12 +67,13 @@ public final class NameService {
 
     public void create(String id, String color, boolean bold, boolean italic, String text) {
         validateId(id);
+        color = normalizeColor(color);
         text = normalizeText(text);
         String val = legacy(color) + (bold ? "§l" : "") + (italic ? "§o" : "") + text;
         store.set("tags." + id + ".text", val);
         store.set("tags." + id + ".bold", bold);
         store.set("tags." + id + ".italic", italic);
-        store.set("tags." + id + ".color", normalizeColor(color));
+        store.set("tags." + id + ".color", color);
         store.saveNow();
     }
 
@@ -126,23 +128,25 @@ public final class NameService {
     }
 
     private String normalizeColor(String c) {
-        return c == null ? "white" : c.trim().toLowerCase(Locale.ROOT);
+        if (c == null || c.isBlank()) throw new IllegalArgumentException("Tag color is required.");
+        c = c.trim().toLowerCase(Locale.ROOT);
+        if (!COLORS.contains(c) && !c.matches("#[0-9a-f]{6}"))
+            throw new IllegalArgumentException("Invalid tag color: " + c);
+        return c;
     }
 
     private String legacy(String c) {
-        if (c == null) return "";
-        c = c.trim();
         if (c.startsWith("#") && c.matches("#[0-9a-fA-F]{6}")) {
             StringBuilder b = new StringBuilder("§x");
             for (char ch : c.substring(1).toCharArray()) b.append('§').append(ch);
             return b.toString();
         }
-        return switch (c.toLowerCase(Locale.ROOT)) {
+        return switch (c) {
             case "black" -> "§0"; case "dark_blue" -> "§1"; case "dark_green" -> "§2"; case "dark_aqua" -> "§3";
             case "dark_red" -> "§4"; case "dark_purple" -> "§5"; case "gold" -> "§6"; case "gray" -> "§7";
             case "dark_gray" -> "§8"; case "blue" -> "§9"; case "green" -> "§a"; case "aqua" -> "§b";
             case "red" -> "§c"; case "light_purple" -> "§d"; case "yellow" -> "§e"; case "white" -> "§f";
-            default -> ChatColor.WHITE.toString();
+            default -> throw new IllegalArgumentException("Invalid tag color: " + c);
         };
     }
 }
