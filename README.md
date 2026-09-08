@@ -42,7 +42,7 @@ Priority is exact pair > outgoing > incoming > global. A zero multiplier changes
 ### Enchant / Disenchant
 - `/uop enchant <all|armor|equipment|mainhand|offhand|inventory> <targets> <enchantment> [level]`
 - `/uop disenchant <all|armor|equipment|hand|inventory> <targets> <enchantment>`
-- Armor and disenchant hand scopes accept a slot selector where applicable.
+- Armor scopes and the disenchant `hand` scope accept a slot selector where applicable.
 - Enchantment levels are validated to 1-255 and cannot exceed the enchantment's native maximum.
 - `/uop enchant hand` is intentionally unsupported; use `mainhand` or `offhand`.
 
@@ -83,10 +83,7 @@ History is sampled on a configurable tick interval and retained as a bounded rol
 Tag text is limited to 32 characters. Tags persist by player UUID and are reapplied after reconnect.
 
 ### Protection
-- `/uop protect add <targets>` (default: both UUID + IP)
-- `/uop protect uuid <targets>`
-- `/uop protect ip <targets>`
-- `/uop protect both <targets>`
+- `/uop protect add <targets> [uuid|ip|both]` (default: both UUID + IP)
 - `/uop protect remove <targets>`
 - `/uop protect list`
 - `/uop protect reset`
