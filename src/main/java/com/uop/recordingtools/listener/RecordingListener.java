@@ -34,7 +34,7 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void chat(AsyncChatEvent e) {
         Player player = e.getPlayer();
-        if (plugin.names().tagId(player) == null) return;
+        if (!plugin.names().hasTag(player)) return;
         e.renderer(ChatRenderer.viewerUnaware((source, sourceDisplayName, message) ->
                 plugin.names().chatName(source).append(net.kyori.adventure.text.Component.text(" » ")).append(message)));
     }
