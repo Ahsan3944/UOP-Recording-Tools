@@ -90,15 +90,6 @@ public final class RecordingListener implements Listener {
         e.setCancelled(true);
     }
 
-    private boolean isArmor(org.bukkit.inventory.ItemStack item) {
-        if (item == null || item.getType().isAir()) return false;
-        Material type = item.getType();
-        String name = type.name();
-        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE")
-                || name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS")
-                || type == Material.TURTLE_HELMET;
-    }
-
     @EventHandler public void interactEntity(PlayerInteractEntityEvent e) {
         if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
     }
@@ -125,5 +116,18 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void sprint(PlayerToggleSprintEvent e) {
         if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler public void flight(PlayerToggleFlightEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    private boolean isArmor(org.bukkit.inventory.ItemStack item) {
+        if (item == null || item.getType().isAir()) return false;
+        Material type = item.getType();
+        String name = type.name();
+        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE")
+                || name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS")
+                || type == Material.TURTLE_HELMET;
     }
 }
