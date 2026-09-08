@@ -35,8 +35,14 @@ public final class UopRecordingToolsPlugin extends JavaPlugin {
         PluginCommand root = getCommand("uop");
         if (root != null) { root.setExecutor(compat); root.setTabCompleter(compat); }
         getServer().getPluginManager().registerEvents(new RecordingListener(this), this);
+        scheduleInventoryHistory();
         names.refreshAll();
         getLogger().info("UOP Recording Tools enabled.");
+    }
+
+    private void scheduleInventoryHistory() {
+        long sampleTicks = Math.max(1L, getConfig().getLong("history-sample-ticks", 100L));
+        getServer().getScheduler().runTaskTimer(this, inventory::tickHistory, sampleTicks, sampleTicks);
     }
 
     @Override public void onDisable() { if (store != null) store.save(); }
