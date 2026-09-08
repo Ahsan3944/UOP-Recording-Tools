@@ -92,22 +92,53 @@ public final class ArmorService {
     public void saveLoadout(String name, Player p) {
         validateName(name);
         String base = "loadouts." + name;
-        store.set(base + ".owner", p.getUniqueId().toString()); store.set(base + ".ownerName", p.getName());
-        store.set(base + ".inventory", cloneList(p.getInventory().getContents()));
+        store.set(base + ".owner", p.getUniqueId().toString());
+        store.set(base + ".ownerName", p.getName());
+        store.set(base + ".hotbar", cloneList(Arrays.copyOfRange(p.getInventory().getContents(), 0, 9)));
         store.set(base + ".armor", cloneList(p.getInventory().getArmorContents()));
         store.set(base + ".offhand", cloneList(new ItemStack[]{p.getInventory().getItemInOffHand()}));
+        store.remove(base + ".inventory");
         store.saveNow();
     }
 
     public boolean giveSaved(String name, Player p) {
         validateName(name);
-        if (!store.data().contains("loadouts." + name)) return false;
-        List<?> inv = store.data().getList("loadouts." + name + ".inventory");
-        List<?> armor = store.data().getList("loadouts." + name + ".armor");
-        List<?> off = store.data().getList("loadouts." + name + ".offhand");
-        p.getInventory().setContents(deserialize(inv, 41)); p.getInventory().setArmorContents(deserialize(armor, 4));
-        ItemStack[] o = deserialize(off, 1); p.getInventory().setItemInOffHand(o[0]);
+        String base = "loadouts." + name;
+        if (!store.data().contains(base)) return false;
+        List<?> hotbar = store.data().getList(base + ".hotbar");
+        if (hotbar == null) {
+            List<?> legacyInventory = store.data().getList(base + ".inventory");
+            hotbar = legacyInventory == null ? null : legacyInventory.subList(0, Math.min(9, legacyInventory.size()));
+        }
+        List<?> armor = store.data().getList(base + ".armor");
+        List<?> off = store.data().getList(base + ".offhand");
+        restoreHotbarSafely(p, deserialize(hotbar, 9));
+        restoreArmorSafely(p, deserialize(armor, 4));
+        ItemStack[] o = deserialize(off, 1);
+        ItemStack currentOffhand = p.getInventory().getItemInOffHand();
+        p.getInventory().setItemInOffHand(o[0]);
+        returnItemSafely(p, currentOffhand);
         return true;
+    }
+
+    private void restoreHotbarSafely(Player p, ItemStack[] hotbar) {
+        for (int slot = 0; slot < 9; slot++) {
+            ItemStack current = p.getInventory().getItem(slot);
+            p.getInventory().setItem(slot, hotbar[slot]);
+            returnItemSafely(p, current);
+        }
+    }
+
+    private void restoreArmorSafely(Player p, ItemStack[] armor) {
+        ItemStack[] current = p.getInventory().getArmorContents();
+        p.getInventory().setArmorContents(armor);
+        for (ItemStack item : current) returnItemSafely(p, item);
+    }
+
+    private void returnItemSafely(Player p, ItemStack item) {
+        if (item == null || item.getType().isAir()) return;
+        Map<Integer, ItemStack> leftovers = p.getInventory().addItem(item.clone());
+        for (ItemStack leftover : leftovers.values()) p.getWorld().dropItemNaturally(p.getLocation(), leftover);
     }
 
     public Set<String> loadouts() { var sec = store.data().getConfigurationSection("loadouts"); return sec == null ? Set.of() : sec.getKeys(false); }
