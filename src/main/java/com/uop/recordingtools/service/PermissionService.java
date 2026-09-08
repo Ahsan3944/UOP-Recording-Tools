@@ -46,8 +46,9 @@ public final class PermissionService {
         if (p == null) return false;
         if (p.isOp()) return true;
         node = normalize(node);
-        for (String x : store.data().getStringList(base(p))) {
-            if (x.equals("*") || x.equalsIgnoreCase(node)) return true;
+        for (String raw : store.data().getStringList(base(p))) {
+            String x = normalizeStored(raw);
+            if (x.equals("*") || x.equals(node)) return true;
             if (x.endsWith(".*") && node.startsWith(x.substring(0, x.length() - 1))) return true;
         }
         return false;
@@ -64,7 +65,7 @@ public final class PermissionService {
         else {
             var l = new ArrayList<>(list(p));
             String n = normalize(node);
-            l.removeIf(x -> x.equalsIgnoreCase(n));
+            l.removeIf(x -> normalizeStored(x).equals(n));
             if (l.isEmpty()) store.remove(base(p));
             else store.set(base(p), l);
         }
@@ -73,6 +74,11 @@ public final class PermissionService {
 
     private String normalize(String node) {
         if (node == null || node.isBlank()) throw new IllegalArgumentException("Permission node required.");
+        return node.trim().toLowerCase(Locale.ROOT).replace(' ', '.');
+    }
+
+    private String normalizeStored(String node) {
+        if (node == null || node.isBlank()) return "";
         return node.trim().toLowerCase(Locale.ROOT).replace(' ', '.');
     }
 }
