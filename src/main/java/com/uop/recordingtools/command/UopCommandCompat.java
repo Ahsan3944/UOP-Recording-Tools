@@ -2,6 +2,7 @@ package com.uop.recordingtools.command;
 
 import com.uop.recordingtools.UopRecordingToolsPlugin;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,11 +21,15 @@ import java.util.Locale;
  * on the selected scope/mode.
  */
 public final class UopCommandCompat implements CommandExecutor, TabCompleter {
+    private static final List<String> ARMOR_MATERIALS = List.of("leather", "chainmail", "iron", "gold", "diamond", "netherite");
     private static final List<String> ARMOR_MODES = List.of("plain", "enchanted", "max");
     private static final List<String> WEAPONS = List.of("sword", "mace", "axe", "bow", "crossbow", "trident", "pickaxe", "shovel", "hoe");
     private static final List<String> ARMOR_SLOTS = List.of("helmet", "chestplate", "leggings", "boots", "head", "chest", "legs", "feet");
     private static final List<String> HAND_SLOTS = List.of("mainhand", "offhand");
     private static final List<String> TAG_COLORS = List.of("black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white", "#RRGGBB");
+    private static final List<String> INV_ACTIONS = List.of("view", "set", "remove", "give", "take", "swap", "clear", "backup", "restore", "backups", "backup-delete", "record", "back", "lock", "unlock");
+    private static final List<String> INV_TIMES = List.of("30s", "1m", "2m", "3m", "4m", "5m");
+    private static final List<String> BOOLEAN_VALUES = List.of("true", "false");
 
     private final UopCommand delegate;
 
@@ -54,20 +59,97 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         String root = a[0].toLowerCase(Locale.ROOT);
         if (root.equals("armor")) return armorTab(a);
         if (root.equals("enchant") || root.equals("disenchant")) return enchantTab(a, root.equals("disenchant"));
+        if (root.equals("inv")) return invTab(a);
         if (root.equals("name") && a.length >= 4 && a[1].equalsIgnoreCase("tag")) return tagTab(a);
         return null;
     }
 
     private List<String> armorTab(String[] a) {
-        if (a.length < 3) return null;
+        if (a.length == 2) return List.of("set", "save", "list", "delete", "give", "weapon");
         String action = a[1].toLowerCase(Locale.ROOT);
-        if (!action.equals("weapon")) return null;
-        if (a.length == 3) return List.of("set");
-        if (a.length == 4 && a[2].equalsIgnoreCase("set")) return players();
-        if (a.length == 5 && a[2].equalsIgnoreCase("set")) return ARMOR_MODES;
-        if (a.length == 6 && a[2].equalsIgnoreCase("set") && a[4].equalsIgnoreCase("enchanted")) return levels10();
-        if ((a.length == 6 && a[2].equalsIgnoreCase("set") && !a[4].equalsIgnoreCase("enchanted"))
-                || (a.length >= 7 && a[2].equalsIgnoreCase("set"))) return WEAPONS;
+        switch (action) {
+            case "set":
+                if (a.length == 3) return players();
+                if (a.length == 4) return ARMOR_MATERIALS;
+                if (a.length == 5) return ARMOR_MODES;
+                if (a.length == 6 && a[4].equalsIgnoreCase("enchanted")) return levels10();
+                if (a.length == 6 && !a[4].equalsIgnoreCase("enchanted")) return BOOLEAN_VALUES;
+                if (a.length == 7 && a[4].equalsIgnoreCase("enchanted")) return BOOLEAN_VALUES;
+                if (a.length >= 7) return WEAPONS;
+                return null;
+            case "save":
+                if (a.length == 4) return players();
+                return null;
+            case "give":
+                if (a.length == 3) return players();
+                if (a.length == 4) return List.of("saved", "direct");
+                if (a.length == 5 && a[3].equalsIgnoreCase("saved")) return List.of("<set_name>");
+                if (a.length == 5 && a[3].equalsIgnoreCase("direct")) return ARMOR_MATERIALS;
+                if (a.length == 6 && a[3].equalsIgnoreCase("direct")) return ARMOR_MODES;
+                if (a.length == 7 && a[3].equalsIgnoreCase("direct") && a[5].equalsIgnoreCase("enchanted")) return levels10();
+                if (a.length == 7 && a[3].equalsIgnoreCase("direct") && !a[5].equalsIgnoreCase("enchanted")) return BOOLEAN_VALUES;
+                if (a.length == 8 && a[3].equalsIgnoreCase("direct") && a[5].equalsIgnoreCase("enchanted")) return BOOLEAN_VALUES;
+                if (a.length >= 8 && a[3].equalsIgnoreCase("direct")) return WEAPONS;
+                return null;
+            case "weapon":
+                if (a.length == 3) return List.of("set");
+                if (a.length == 4 && a[2].equalsIgnoreCase("set")) return players();
+                if (a.length == 5 && a[2].equalsIgnoreCase("set")) return ARMOR_MODES;
+                if (a.length == 6 && a[2].equalsIgnoreCase("set") && a[4].equalsIgnoreCase("enchanted")) return levels10();
+                if (a.length == 6 && a[2].equalsIgnoreCase("set") && !a[4].equalsIgnoreCase("enchanted")) return WEAPONS;
+                if (a.length >= 7 && a[2].equalsIgnoreCase("set")) return WEAPONS;
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    private List<String> invTab(String[] a) {
+        if (a.length == 2) return INV_ACTIONS;
+        String action = a[1].toLowerCase(Locale.ROOT);
+        if (action.equals("record")) {
+            if (a.length == 3) return List.of("stop", "status");
+            if (a.length == 4 && a[2].equalsIgnoreCase("stop")) return players();
+            return null;
+        }
+        if (action.equals("view") || action.equals("backups") || action.equals("lock") || action.equals("unlock")) {
+            if (a.length == 3) return players();
+            return null;
+        }
+        if (action.equals("set")) {
+            if (a.length == 3) return players();
+            if (a.length == 4) return slots41();
+            if (a.length == 5) return itemNames();
+            if (a.length == 6) return amountValues();
+            return null;
+        }
+        if (action.equals("remove")) {
+            if (a.length == 3) return players();
+            if (a.length == 4) return slots41();
+            return null;
+        }
+        if (action.equals("give") || action.equals("take")) {
+            if (a.length == 3) return players();
+            if (a.length == 4) return itemNames();
+            if (a.length == 5) return amountValues();
+            return null;
+        }
+        if (action.equals("swap")) {
+            if (a.length == 3) return players();
+            if (a.length == 4) return slots41();
+            if (a.length == 5) return players();
+            if (a.length == 6) return slots41();
+            return null;
+        }
+        if (action.equals("backup") || action.equals("restore") || action.equals("backup-delete")) {
+            if (a.length == 3) return players();
+            return null;
+        }
+        if (action.equals("back")) {
+            if (a.length == 3) return players();
+            if (a.length == 4) return INV_TIMES;
+            return null;
+        }
         return null;
     }
 
@@ -107,8 +189,8 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
 
     private List<String> tagTab(String[] a) {
         if (a.length == 5 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return TAG_COLORS;
-        if (a.length == 6 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return List.of("true", "false");
-        if (a.length == 7 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return List.of("true", "false");
+        if (a.length == 6 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return BOOLEAN_VALUES;
+        if (a.length == 7 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return BOOLEAN_VALUES;
         if (a.length == 4 && (a[2].equalsIgnoreCase("give") || a[2].equalsIgnoreCase("change") || a[2].equalsIgnoreCase("remove"))) return players();
         return null;
     }
@@ -116,6 +198,24 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     private List<String> players() {
         List<String> out = new ArrayList<>(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
         out.addAll(List.of("@a", "@p", "@r", "@s"));
+        return out;
+    }
+
+    private List<String> slots41() {
+        List<String> out = new ArrayList<>(41);
+        for (int i = 0; i <= 40; i++) out.add(String.valueOf(i));
+        return out;
+    }
+
+    private List<String> amountValues() {
+        List<String> out = new ArrayList<>(99);
+        for (int i = 1; i <= 99; i++) out.add(String.valueOf(i));
+        return out;
+    }
+
+    private List<String> itemNames() {
+        List<String> out = new ArrayList<>();
+        for (Material material : Material.values()) if (!material.isAir() && material.isItem()) out.add(material.getKey().getKey());
         return out;
     }
 
