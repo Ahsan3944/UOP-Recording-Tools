@@ -43,7 +43,11 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void damage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player p && plugin.freeze().full(p)) { e.setCancelled(true); return; }
-        if (e instanceof EntityDamageByEntityEvent x) e.setDamage(e.getDamage() * plugin.damage().multiplier(x.getDamager(), x.getEntity()));
+
+        // Match the Fabric implementation: global/incoming rules apply to
+        // environmental damage as well as entity-caused damage.
+        var damager = e instanceof EntityDamageByEntityEvent x ? x.getDamager() : null;
+        e.setDamage(e.getDamage() * plugin.damage().multiplier(damager, e.getEntity()));
     }
 
     @EventHandler public void drop(PlayerDropItemEvent e) {
