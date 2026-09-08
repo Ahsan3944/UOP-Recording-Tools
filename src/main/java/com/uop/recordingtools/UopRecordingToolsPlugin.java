@@ -46,7 +46,7 @@ public final class UopRecordingToolsPlugin extends JavaPlugin {
     }
 
     @Override public void onDisable() { if (store != null) store.save(); }
-    public void reloadPlugin() { reloadConfig(); store.load(); names.refreshAll(); }
+    public void reloadPlugin() { inventory.resetRuntime(); reloadConfig(); store.load(); names.refreshAll(); }
     public DataStore store(){return store;} public PermissionService permissions(){return permissions;}
     public ArmorService armor(){return armor;} public CheckpointService checkpoints(){return checkpoints;}
     public DamageService damage(){return damage;} public EnchantService enchant(){return enchant;}
