@@ -66,7 +66,28 @@ public final class NameService {
     }
 
     public void create(String id, String color, boolean bold, boolean italic, String text) {
+        id = normalizeId(id);
         validateId(id);
+        color = normalizeColor(color);
+        text = normalizeText(text);
+        if (store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag already exists: " + id);
+        String val = legacy(color) + (bold ? "§l" : "") + (italic ? "§o" : "") + text;
+        store.set("tags." + id + ".text", val);
+        store.set("tags." + id + ".bold", bold);
+        store.set("tags." + id + ".italic", italic);
+        store.set("tags." + id + ".color", color);
+        store.saveNow();
+    }
+
+    public void edit(String id, String color, boolean bold, boolean italic, String text) {
+        id = normalizeId(id);
+        validateId(id);
+        if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
+        createEdit(id, color, bold, italic, text);
+        for (Player p : Bukkit.getOnlinePlayers()) if (id.equals(tagId(p))) refresh(p);
+    }
+
+    private void createEdit(String id, String color, boolean bold, boolean italic, String text) {
         color = normalizeColor(color);
         text = normalizeText(text);
         String val = legacy(color) + (bold ? "§l" : "") + (italic ? "§o" : "") + text;
@@ -77,19 +98,13 @@ public final class NameService {
         store.saveNow();
     }
 
-    public void edit(String id, String color, boolean bold, boolean italic, String text) {
-        validateId(id);
-        if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
-        create(id, color, bold, italic, text);
-        for (Player p : Bukkit.getOnlinePlayers()) if (id.equals(tagId(p))) refresh(p);
-    }
-
     public Set<String> tags() {
         var s = store.data().getConfigurationSection("tags");
         return s == null ? Set.of() : s.getKeys(false);
     }
 
     public void deleteTag(String id) {
+        id = normalizeId(id);
         validateId(id);
         if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
         store.remove("tags." + id);
@@ -98,6 +113,7 @@ public final class NameService {
     }
 
     public void give(Player p, String id) {
+        id = normalizeId(id);
         validateId(id);
         if (!store.data().contains("tags." + id)) throw new IllegalArgumentException("Tag not found: " + id);
         store.set("names.tag." + p.getUniqueId(), id);
@@ -106,7 +122,7 @@ public final class NameService {
     }
 
     public void removeTag(Player p) { store.remove("names.tag." + p.getUniqueId()); refresh(p); store.saveNow(); }
-    public String tagId(Player p) { return store.data().getString("names.tag." + p.getUniqueId()); }
+    public String tagId(Player p) { String id = store.data().getString("names.tag." + p.getUniqueId()); return id == null ? null : normalizeId(id); }
     public boolean hasTag(Player p) { return tagOf(p) != null; }
 
     private String tagOf(Player p) {
@@ -114,6 +130,10 @@ public final class NameService {
         if (id == null || !store.data().contains("tags." + id)) return null;
         String text = store.data().getString("tags." + id + ".text");
         return text == null || text.isEmpty() ? null : text;
+    }
+
+    private String normalizeId(String id) {
+        return id == null ? "" : id.trim().toLowerCase(Locale.ROOT);
     }
 
     private void validateId(String id) {
