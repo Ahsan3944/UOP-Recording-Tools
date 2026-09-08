@@ -5,12 +5,12 @@ import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.event.entity.EntityCombustByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
@@ -55,9 +55,16 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void damage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player p && plugin.freeze().full(p)) { e.setCancelled(true); return; }
-        if (e instanceof EntityDamageByEntityEvent x && x.getDamager() instanceof Player p && plugin.freeze().frozen(p)) {
-            e.setCancelled(true);
-            return;
+        if (e instanceof EntityDamageByEntityEvent x) {
+            if (x.getDamager() instanceof Player p && plugin.freeze().frozen(p)) {
+                e.setCancelled(true);
+                return;
+            }
+            if (x.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player p
+                    && plugin.freeze().frozen(p)) {
+                e.setCancelled(true);
+                return;
+            }
         }
         var damager = e instanceof EntityDamageByEntityEvent x ? x.getDamager() : null;
         e.setDamage(e.getDamage() * plugin.damage().multiplier(damager, e.getEntity()));
