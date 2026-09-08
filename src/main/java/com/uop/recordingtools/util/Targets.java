@@ -14,6 +14,10 @@ public final class Targets {
         for (String token : args) {
             if (token == null || token.isBlank()) continue;
             try {
+                if (token.equalsIgnoreCase("all")) {
+                    for (Player p : Bukkit.getOnlinePlayers()) out.put(p.getUniqueId(), p);
+                    continue;
+                }
                 if (token.startsWith("@")) {
                     for (Entity e : Bukkit.selectEntities(sender, token)) {
                         if (e instanceof Player p && p.isOnline()) out.put(p.getUniqueId(), p);
