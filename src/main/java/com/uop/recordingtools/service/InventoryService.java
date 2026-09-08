@@ -134,6 +134,8 @@ public final class InventoryService {
         for (Player p : ps) {
             lastSnapshots.remove(p.getUniqueId());
             lastSelectedSlots.remove(p.getUniqueId());
+            String historyPath = "inventories." + p.getUniqueId() + ".history";
+            if (!store.data().contains(historyPath)) store.set(historyPath, new ArrayList<>());
             record(p);
         }
         store.saveNow();
@@ -160,15 +162,21 @@ public final class InventoryService {
 
     public void record(Player p) {
         if (!recording(p)) return;
+        UUID id = p.getUniqueId();
+        String b = "inventories." + id + ".history";
+        if (!store.data().contains(b)) {
+            recording.remove(id);
+            lastSnapshots.remove(id);
+            lastSelectedSlots.remove(id);
+            return;
+        }
         List<ItemStack> current = snapshot(p);
         int selected = p.getInventory().getHeldItemSlot();
-        UUID id = p.getUniqueId();
         List<ItemStack> previous = lastSnapshots.get(id);
         Integer previousSelected = lastSelectedSlots.get(id);
         if (previous != null && previousSelected != null && inventoryEquals(previous, current)
                 && previousSelected == selected) return;
 
-        String b = "inventories." + id + ".history";
         List<Map<?, ?>> h = store.data().getMapList(b);
         Map<String, Object> snap = new LinkedHashMap<>();
         long now = System.currentTimeMillis();
