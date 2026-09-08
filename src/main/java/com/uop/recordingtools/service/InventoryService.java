@@ -16,8 +16,10 @@ public final class InventoryService {
 
     public void set(Player p, int slot, ItemStack item) {
         validateSlot(slot);
+        if (item == null) throw new IllegalArgumentException("Item cannot be null.");
+        if (!item.getType().isAir()) validateAmount(item.getAmount());
         record(p);
-        p.getInventory().setItem(slot, item);
+        p.getInventory().setItem(slot, item.clone());
         record(p);
     }
 
@@ -60,7 +62,8 @@ public final class InventoryService {
         validateSlot(s1); validateSlot(s2);
         record(a); record(b);
         ItemStack x = a.getInventory().getItem(s1), y = b.getInventory().getItem(s2);
-        a.getInventory().setItem(s1, y); b.getInventory().setItem(s2, x);
+        a.getInventory().setItem(s1, y == null ? null : y.clone());
+        b.getInventory().setItem(s2, x == null ? null : x.clone());
         record(a); record(b);
     }
 
@@ -74,7 +77,10 @@ public final class InventoryService {
         requireName(name);
         Object o = store.get("inventories." + p.getUniqueId() + ".backups." + name);
         if (!(o instanceof List<?> l)) return false;
+        record(p);
         restoreSnapshot(p, l);
+        record(p);
+        store.saveNow();
         return true;
     }
 
@@ -99,9 +105,14 @@ public final class InventoryService {
     public void startRecord(Collection<Player> ps) {
         recording.addAll(ps.stream().map(Player::getUniqueId).toList());
         for (Player p : ps) record(p);
+        store.saveNow();
     }
 
-    public void stopRecord(Collection<Player> ps) { recording.removeAll(ps.stream().map(Player::getUniqueId).toList()); }
+    public void stopRecord(Collection<Player> ps) {
+        recording.removeAll(ps.stream().map(Player::getUniqueId).toList());
+        store.saveNow();
+    }
+
     public boolean recording(Player p) { return recording.contains(p.getUniqueId()); }
     public Set<UUID> recording() { return Collections.unmodifiableSet(recording); }
 
@@ -126,18 +137,24 @@ public final class InventoryService {
         if (h.size() == 1 || h.size() % 10 == 0) store.save();
     }
 
-    private List<ItemStack> snapshot(Player p) { return Arrays.asList(p.getInventory().getContents()); }
+    private List<ItemStack> snapshot(Player p) {
+        ItemStack[] contents = p.getInventory().getContents();
+        List<ItemStack> copy = new ArrayList<>(contents.length);
+        for (ItemStack item : contents) copy.add(item == null ? null : item.clone());
+        return copy;
+    }
 
     private void restoreSnapshot(Player p, List<?> l) {
         ItemStack[] a = new ItemStack[41];
         Arrays.fill(a, new ItemStack(Material.AIR));
-        for (int i = 0; i < Math.min(41, l.size()); i++) if (l.get(i) instanceof ItemStack x) a[i] = x.clone();
+        for (int i = 0; i < Math.min(41, l.size()); i++) {
+            if (l.get(i) instanceof ItemStack x) a[i] = x.clone();
+        }
         p.getInventory().setContents(a);
     }
 
     public boolean back(Player p, String time) {
         long seconds = parse(time);
-        if (seconds < 0) throw new IllegalArgumentException("Invalid history time: " + time);
         List<Map<?, ?>> h = store.data().getMapList("inventories." + p.getUniqueId() + ".history");
         if (h.isEmpty()) return false;
         long target = System.currentTimeMillis() - seconds * 1000L;
@@ -148,7 +165,13 @@ public final class InventoryService {
         }
         if (best == null) best = h.get(0);
         Object items = best.get("items");
-        if (items instanceof List<?> l) { restoreSnapshot(p, l); return true; }
+        if (items instanceof List<?> l) {
+            record(p);
+            restoreSnapshot(p, l);
+            record(p);
+            store.saveNow();
+            return true;
+        }
         return false;
     }
 
@@ -166,5 +189,8 @@ public final class InventoryService {
 
     private void validateSlot(int slot) { if (slot < 0 || slot > 40) throw new IllegalArgumentException("Inventory slot must be 0-40."); }
     private void validateAmount(int amount) { if (amount < 1 || amount > 99) throw new IllegalArgumentException("Amount must be 1-99."); }
-    private void requireName(String name) { if (name == null || name.isBlank() || name.length() > 64) throw new IllegalArgumentException("Invalid backup name."); }
+    private void requireName(String name) {
+        if (name == null || name.isBlank() || name.length() > 64 || !name.matches("[A-Za-z0-9_-]+"))
+            throw new IllegalArgumentException("Invalid backup name. Use letters, numbers, _ or - only.");
+    }
 }
