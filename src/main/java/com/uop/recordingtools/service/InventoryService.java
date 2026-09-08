@@ -69,19 +69,39 @@ public final class InventoryService {
 
     public void backup(Player p, String name) {
         requireName(name);
-        store.set("inventories." + p.getUniqueId() + ".backups." + name, snapshot(p));
+        Map<String, Object> backup = new LinkedHashMap<>();
+        backup.put("selected-slot", p.getInventory().getHeldItemSlot());
+        backup.put("items", snapshot(p));
+        store.set("inventories." + p.getUniqueId() + ".backups." + name, backup);
         store.saveNow();
     }
 
     public boolean restore(Player p, String name) {
         requireName(name);
         Object o = store.get("inventories." + p.getUniqueId() + ".backups." + name);
-        if (!(o instanceof List<?> l)) return false;
-        record(p);
-        restoreSnapshot(p, l);
-        record(p);
-        store.saveNow();
-        return true;
+        if (o instanceof Map<?, ?> backup) {
+            Object items = backup.get("items");
+            if (!(items instanceof List<?> l)) return false;
+            int selected = p.getInventory().getHeldItemSlot();
+            Object selectedValue = backup.get("selected-slot");
+            if (selectedValue instanceof Number n) selected = n.intValue();
+            if (selected < 0 || selected > 8) return false;
+            record(p);
+            restoreSnapshot(p, l);
+            p.getInventory().setHeldItemSlot(selected);
+            record(p);
+            store.saveNow();
+            return true;
+        }
+        // Backward compatibility with backups written by older Paper builds.
+        if (o instanceof List<?> l) {
+            record(p);
+            restoreSnapshot(p, l);
+            record(p);
+            store.saveNow();
+            return true;
+        }
+        return false;
     }
 
     public Set<String> backups(Player p) {
@@ -139,8 +159,6 @@ public final class InventoryService {
             try {
                 cutoff = Math.subtractExact(now, Math.multiplyExact(windowSeconds, 1000L));
             } catch (ArithmeticException e) {
-                // An unrepresentable window effectively means "retain everything"
-                // until the normal max-history-snapshots cap is applied.
                 cutoff = Long.MIN_VALUE;
             }
             final long historyCutoff = cutoff;
@@ -228,7 +246,7 @@ public final class InventoryService {
     private void validateSlot(int slot) { if (slot < 0 || slot > 40) throw new IllegalArgumentException("Inventory slot must be 0-40."); }
     private void validateAmount(int amount) { if (amount < 1 || amount > 99) throw new IllegalArgumentException("Amount must be 1-99."); }
     private void requireName(String name) {
-        if (name == null || name.isBlank() || name.length() > 64 || !name.matches("[A-Za-z0-9_-]+"))
-            throw new IllegalArgumentException("Invalid backup name. Use letters, numbers, _ or - only.");
+        if (name == null || name.isBlank() || name.length() > 64 || !name.matches("[A-Za-z0-9._ -]{1,64}"))
+            throw new IllegalArgumentException("Invalid backup name. Use letters, numbers, spaces, '.', '_' or '-'.");
     }
 }
