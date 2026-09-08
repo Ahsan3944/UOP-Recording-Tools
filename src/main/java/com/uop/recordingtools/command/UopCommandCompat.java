@@ -200,10 +200,13 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
     }
 
     private List<String> tagTab(String[] a) {
-        if (a.length == 5 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return TAG_COLORS;
-        if (a.length == 6 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return BOOLEAN_VALUES;
-        if (a.length == 7 && (a[2].equalsIgnoreCase("create") || a[2].equalsIgnoreCase("edit"))) return BOOLEAN_VALUES;
-        if (a.length == 4 && (a[2].equalsIgnoreCase("give") || a[2].equalsIgnoreCase("change") || a[2].equalsIgnoreCase("remove"))) return players();
+        String action = a[2].toLowerCase(Locale.ROOT);
+        if (a.length == 5 && (action.equals("create") || action.equals("edit"))) return TAG_COLORS;
+        if (a.length == 6 && (action.equals("create") || action.equals("edit"))) return BOOLEAN_VALUES;
+        if (a.length == 7 && (action.equals("create") || action.equals("edit"))) return BOOLEAN_VALUES;
+        if (a.length == 4 && (action.equals("give") || action.equals("change") || action.equals("remove"))) return players();
+        if (a.length == 5 && (action.equals("give") || action.equals("change"))) return tags();
+        if (a.length == 4 && action.equals("delete")) return tags();
         return null;
     }
 
@@ -215,6 +218,10 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
 
     private List<String> loadouts() {
         return new ArrayList<>(plugin.armor().loadouts());
+    }
+
+    private List<String> tags() {
+        return new ArrayList<>(plugin.names().tags());
     }
 
     private List<String> slots41() {
