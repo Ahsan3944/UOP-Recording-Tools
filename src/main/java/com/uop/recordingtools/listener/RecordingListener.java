@@ -66,7 +66,7 @@ public final class RecordingListener implements Listener {
     }
 
     @EventHandler public void pickup(EntityPickupItemEvent e) {
-        if (e.getEntity() instanceof Player p && plugin.freeze().frozen(p)) e.setCancelled(true);
+        if (e.getEntity() instanceof Player p && (plugin.freeze().frozen(p) || plugin.inventory().locked(p))) e.setCancelled(true);
     }
 
     @EventHandler public void swap(PlayerSwapHandItemsEvent e) {
