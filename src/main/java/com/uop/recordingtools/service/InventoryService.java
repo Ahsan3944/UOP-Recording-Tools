@@ -157,13 +157,32 @@ public final class InventoryService {
         long seconds = parse(time);
         List<Map<?, ?>> h = store.data().getMapList("inventories." + p.getUniqueId() + ".history");
         if (h.isEmpty()) return false;
-        long target = System.currentTimeMillis() - seconds * 1000L;
+        long target;
+        try {
+            target = Math.subtractExact(System.currentTimeMillis(), Math.multiplyExact(seconds, 1000L));
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException("History time is too large: " + time);
+        }
+
         Map<?, ?> best = null;
+        long bestTime = Long.MIN_VALUE;
+        Map<?, ?> oldest = null;
+        long oldestTime = Long.MAX_VALUE;
         for (Map<?, ?> m : h) {
             Object t = m.get("time");
-            if (t instanceof Number n && n.longValue() <= target) best = m;
+            if (!(t instanceof Number n)) continue;
+            long timestamp = n.longValue();
+            if (timestamp < oldestTime) {
+                oldestTime = timestamp;
+                oldest = m;
+            }
+            if (timestamp <= target && timestamp > bestTime) {
+                bestTime = timestamp;
+                best = m;
+            }
         }
-        if (best == null) best = h.get(0);
+        if (best == null) best = oldest;
+        if (best == null) return false;
         Object items = best.get("items");
         if (items instanceof List<?> l) {
             record(p);
