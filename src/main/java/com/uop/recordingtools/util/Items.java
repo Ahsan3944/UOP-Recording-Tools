@@ -43,6 +43,8 @@ public final class Items {
     public static void enchant(ItemStack item, Enchantment ench, int level) {
         if (item == null || item.getType().isAir() || ench == null) return;
         if (level < 1 || level > 255) throw new IllegalArgumentException("Enchantment level must be 1-255.");
+        int maxLevel = ench.getMaxLevel();
+        if (level > maxLevel) throw new IllegalArgumentException("Enchantment level must not exceed " + maxLevel + " for " + ench.getKey().getKey() + ".");
         item.addUnsafeEnchantment(ench, level);
     }
 
