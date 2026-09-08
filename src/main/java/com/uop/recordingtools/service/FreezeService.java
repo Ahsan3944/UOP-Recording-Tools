@@ -6,13 +6,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class FreezeService {
     private final DataStore store;
+    private final PermissionService permissions;
 
-    public FreezeService(JavaPlugin plugin, DataStore store) {
+    public FreezeService(JavaPlugin plugin, DataStore store, PermissionService permissions) {
         this.store = store;
+        this.permissions = permissions;
     }
 
+    /** OPs and explicitly exempt staff are never frozen by the service. */
     public boolean exempt(Player player) {
-        return player.isOp() || player.hasPermission("uop.freeze.exempt");
+        return player.isOp()
+                || player.hasPermission("uop.freeze.exempt")
+                || permissions.has(player, "uop.freeze.exempt");
     }
 
     public void freeze(Player player, String mode) {
@@ -30,9 +35,8 @@ public final class FreezeService {
 
     public void apply(Player player) {
         // Movement is enforced by RecordingListener through PlayerMoveEvent.
-        // Do not mutate walk/fly speeds here: doing so would overwrite custom
-        // server/plugin speeds and restoring hard-coded defaults on unfreeze
-        // would not restore the player's previous state.
+        // Do not mutate walk/fly speeds here; doing so would alter the player's
+        // pre-existing movement configuration when the freeze is removed.
     }
 
     public String mode(Player player) {
