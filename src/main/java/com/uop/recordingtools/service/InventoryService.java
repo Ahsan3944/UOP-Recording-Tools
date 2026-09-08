@@ -16,6 +16,12 @@ public final class InventoryService {
 
     public InventoryService(JavaPlugin p, DataStore s) { plugin = p; store = s; }
 
+    public void resetRuntime() {
+        recording.clear();
+        lastSnapshots.clear();
+        lastSelectedSlots.clear();
+    }
+
     public void set(Player p, int slot, ItemStack item) {
         validateSlot(slot);
         if (item == null) throw new IllegalArgumentException("Item cannot be null.");
@@ -95,7 +101,6 @@ public final class InventoryService {
             store.saveNow();
             return true;
         }
-        // Backward compatibility with backups written by older Paper builds.
         if (o instanceof List<?> l) {
             record(p);
             restoreSnapshot(p, l);
