@@ -32,7 +32,46 @@ public final class UopCommand implements CommandExecutor, TabCompleter {
     private void damage(CommandSender s,String[] a){need(s,"uop.damage");if(a.length<2)throw new IllegalArgumentException("Action required");switch(a[1].toLowerCase()){case "global"->{require(a,3);p.damage().global(num(a[2]));}case "outgoing","incoming"->{require(a,4);Player q=Targets.one(s,a[2]);if(q==null)throw new IllegalArgumentException("Player not found");if(a[1].equalsIgnoreCase("outgoing"))p.damage().outgoing(q,num(a[3]));else p.damage().incoming(q,num(a[3]));}case "set","pair"->{require(a,5);Player x=Targets.one(s,a[2]),y=Targets.one(s,a[3]);if(x==null||y==null)throw new IllegalArgumentException("Players not found");p.damage().pair(x,y,num(a[4]));}case "reset"->damageReset(s,a);default->throw new IllegalArgumentException("Unknown damage action.");}msg(s,"&aDamage rule updated.");}
     private void damageReset(CommandSender s,String[] a){require(a,3);String t=a[2].toLowerCase();if(t.equals("global")||t.equals("all")){p.damage().resetAll();return;}require(a,t.equals("pair")?5:4);Player x=Targets.one(s,a[3]);if(x==null)throw new IllegalArgumentException("Player not found");if(t.equals("pair")){Player y=Targets.one(s,a[4]);if(y==null)throw new IllegalArgumentException("Player not found");p.damage().reset("pair",x,y);}else p.damage().reset(t,x,null);}
     private void require(String[] a,int n){if(a.length<n)throw new IllegalArgumentException("Incomplete command arguments.");}
-    private void ench(CommandSender s,String[] a,boolean remove){need(s,remove?"uop.disenchant":"uop.enchant");if(a.length<4)throw new IllegalArgumentException("Invalid syntax");String scope=a[1];List<Player> ps=targets(s,a[2]);String slot=null,enchName;int level=1;if(remove&&(scope.equalsIgnoreCase("armor")||scope.equalsIgnoreCase("equipment")||scope.equalsIgnoreCase("hand"))){if(a.length<6)throw new IllegalArgumentException("Slot and enchantment required.");slot=a[3];enchName=a[4];}else{enchName=a[3];if(remove&&a.length>4)slot=a[4];}Enchantment e=Items.enchantment(enchName);if(e==null)throw new IllegalArgumentException("Unknown enchantment: "+enchName);if(!remove){if(a.length>4)try{level=Integer.parseInt(a[4]);}catch(Exception e2){throw new IllegalArgumentException("Invalid enchantment level: "+a[4]);}if(level<1||level>255)throw new IllegalArgumentException("Enchantment level must be 1-255.");}for(Player q:ps)if(remove)p.enchant().remove(q,scope,e,slot);else p.enchant().apply(q,scope,e,level,slot);msg(s,"&aDone for "+ps.size()+" player(s).");}
+    private void ench(CommandSender s,String[] a,boolean remove){
+        need(s,remove?"uop.disenchant":"uop.enchant");
+        if(a.length<4)throw new IllegalArgumentException("Invalid syntax");
+        String scope=a[1].toLowerCase(Locale.ROOT);
+        if(!Set.of("all","armor","equipment","mainhand","offhand","inventory","hand").contains(scope))throw new IllegalArgumentException("Invalid enchantment scope: "+scope);
+        List<Player> ps=targets(s,a[2]);
+        String slot=null;
+        String enchName;
+        int level=1;
+        boolean slotScope=scope.equals("armor")||scope.equals("hand");
+        if(remove){
+            if(slotScope){
+                require(a,6);
+                slot=a[3];
+                enchName=a[4];
+                if(a.length>5)throw new IllegalArgumentException("Too many arguments.");
+            }else{
+                if(a.length!=4)throw new IllegalArgumentException("Expected <scope> <targets> <enchantment>.");
+                enchName=a[3];
+            }
+        }else{
+            if(slotScope&&a.length>=5&&!isInteger(a[4])){
+                require(a,6);
+                slot=a[3];
+                enchName=a[4];
+                level=a.length>5?parseLevel(a[5]):1;
+                if(a.length>6)throw new IllegalArgumentException("Too many arguments.");
+            }else{
+                if(a.length>5)throw new IllegalArgumentException("Too many arguments.");
+                enchName=a[3];
+                if(a.length>4)level=parseLevel(a[4]);
+            }
+        }
+        Enchantment e=Items.enchantment(enchName);
+        if(e==null)throw new IllegalArgumentException("Unknown enchantment: "+enchName);
+        for(Player q:ps)if(remove)p.enchant().remove(q,scope,e,slot);else p.enchant().apply(q,scope,e,level,slot);
+        msg(s,"&aDone for "+ps.size()+" player(s).");
+    }
+    private boolean isInteger(String value){try{Integer.parseInt(value);return true;}catch(Exception e){return false;}}
+    private int parseLevel(String value){try{int level=Integer.parseInt(value);if(level<1||level>255)throw new IllegalArgumentException("Enchantment level must be 1-255.");return level;}catch(NumberFormatException e){throw new IllegalArgumentException("Invalid enchantment level: "+value);}}
     private void freeze(CommandSender s,String[] a,boolean unfreeze){need(s,"uop.freeze");if(a.length<2)throw new IllegalArgumentException("Targets required");String mode="normal",target=a[1];if(!unfreeze&&(a[1].equalsIgnoreCase("normal")||a[1].equalsIgnoreCase("full"))){mode=a[1];if(a.length<3)throw new IllegalArgumentException("Targets required");target=a[2];}List<Player> ps=targets(s,target);for(Player q:ps){if(unfreeze)p.freeze().unfreeze(q);else p.freeze().freeze(q,mode);}msg(s,"&aFreeze state updated for "+ps.size()+" player(s).");}
     private void inv(CommandSender s,String[] a){need(s,"uop.inv");if(a.length<2)throw new IllegalArgumentException("Action required");switch(a[1].toLowerCase()){case "view"->{require(a,3);Player q=Targets.one(s,a[2]);if(q==null)throw new IllegalArgumentException("Player not found");if(!(s instanceof Player))throw new IllegalArgumentException("Only a player can view an inventory.");((Player)s).openInventory(q.getInventory());}case "set"->{require(a,5);Player q=Targets.one(s,a[2]);Material m=Material.matchMaterial(a[4]);if(q==null||m==null||m.isAir())throw new IllegalArgumentException("Invalid target/item");int n=a.length>5?numInt(a[5]):1;p.inventory().set(q,numInt(a[3]),new ItemStack(m,n));}case "remove"->{require(a,4);Player q=Targets.one(s,a[2]);if(q==null)throw new IllegalArgumentException("Player not found");p.inventory().remove(q,numInt(a[3]));}case "give","take"->{require(a,4);Player q=Targets.one(s,a[2]);Material m=Material.matchMaterial(a[3]);if(q==null||m==null||m.isAir())throw new IllegalArgumentException("Invalid target/item");int n=a.length>4?numInt(a[4]):1;if(a[1].equalsIgnoreCase("give"))p.inventory().give(q,m,n);else p.inventory().take(q,m,n);}case "swap"->{require(a,6);Player x=Targets.one(s,a[2]),y=Targets.one(s,a[4]);if(x==null||y==null)throw new IllegalArgumentException("Player not found");p.inventory().swap(x,numInt(a[3]),y,numInt(a[5]));}case "clear"->{require(a,3);Player q=Targets.one(s,a[2]);if(q==null)throw new IllegalArgumentException("Player not found");p.inventory().clear(q);}case "backup","restore","backups","backup-delete","back"->{require(a,4);Player q=Targets.one(s,a[2]);if(q==null)throw new IllegalArgumentException("Player not found");if(a[1].equalsIgnoreCase("backup"))p.inventory().backup(q,a[3]);else if(a[1].equalsIgnoreCase("restore")){if(!p.inventory().restore(q,a[3]))throw new IllegalArgumentException("Backup not found: "+a[3]);}else if(a[1].equalsIgnoreCase("backups"))msg(s,"&fBackups: &7"+String.join(", ",p.inventory().backups(q)));else if(a[1].equalsIgnoreCase("backup-delete"))p.inventory().backupDelete(q,a[3]);else if(!p.inventory().back(q,a[3]))throw new IllegalArgumentException("No history available.");}case "record"->{require(a,3);if(a[2].equalsIgnoreCase("status")){msg(s,"&fRecording players: &7"+p.inventory().recording().size());break;}require(a,4);for(Player q:targets(s,a[3])){if(a[2].equalsIgnoreCase("stop"))p.inventory().stopRecord(List.of(q));else if(a[2].equalsIgnoreCase("start"))p.inventory().startRecord(List.of(q));else throw new IllegalArgumentException("Use record start|stop|status.");}}case "lock","unlock"->{require(a,3);Player q=Targets.one(s,a[2]);if(q==null)throw new IllegalArgumentException("Player not found");p.inventory().lock(q,a[1].equalsIgnoreCase("lock"));}default->throw new IllegalArgumentException("Unknown inventory action.");}msg(s,"&aInventory operation complete.");}
     private int numInt(String x){try{return Integer.parseInt(x);}catch(Exception e){throw new IllegalArgumentException("Invalid integer: "+x);}}
