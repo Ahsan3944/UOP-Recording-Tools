@@ -148,6 +148,7 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
         }
         if (action.equals("backup") || action.equals("restore") || action.equals("backup-delete")) {
             if (a.length == 3) return players();
+            if (a.length == 4) return backupNames(a[2]);
             return null;
         }
         if (action.equals("back")) {
@@ -156,6 +157,12 @@ public final class UopCommandCompat implements CommandExecutor, TabCompleter {
             return null;
         }
         return null;
+    }
+
+    private List<String> backupNames(String target) {
+        if (target == null || target.startsWith("@") || target.contains(",")) return List.of();
+        Player player = Bukkit.getPlayerExact(target);
+        return player == null || !player.isOnline() ? List.of() : new ArrayList<>(plugin.inventory().backups(player));
     }
 
     private List<String> enchantTab(String[] a, boolean remove) {
