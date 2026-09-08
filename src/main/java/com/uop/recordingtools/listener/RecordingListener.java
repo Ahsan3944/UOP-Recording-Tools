@@ -43,9 +43,6 @@ public final class RecordingListener implements Listener {
 
     @EventHandler public void damage(EntityDamageEvent e) {
         if (e.getEntity() instanceof Player p && plugin.freeze().full(p)) { e.setCancelled(true); return; }
-
-        // Match the Fabric implementation: global/incoming rules apply to
-        // environmental damage as well as entity-caused damage.
         var damager = e instanceof EntityDamageByEntityEvent x ? x.getDamager() : null;
         e.setDamage(e.getDamage() * plugin.damage().multiplier(damager, e.getEntity()));
     }
@@ -65,14 +62,48 @@ public final class RecordingListener implements Listener {
     @EventHandler public void click(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
         if (plugin.freeze().full(p) || plugin.inventory().locked(p)) { e.setCancelled(true); return; }
-        // Normal freeze intentionally permits internal inventory rearrangement and armor changes.
     }
 
     @EventHandler public void drag(InventoryDragEvent e) {
         if (e.getWhoClicked() instanceof Player p && (plugin.freeze().full(p) || plugin.inventory().locked(p))) e.setCancelled(true);
     }
 
+    /** Normal freeze blocks world interaction; full freeze uses the same block plus all hand actions. */
     @EventHandler public void interact(PlayerInteractEvent e) {
         if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    /** Full freeze prevents interacting with entities (NPCs, armor stands, vehicles, etc.). */
+    @EventHandler public void interactEntity(PlayerInteractEntityEvent e) {
+        if (plugin.freeze().frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    /** Full freeze prevents changing the selected hotbar slot. */
+    @EventHandler public void held(PlayerItemHeldEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    /** Full freeze prevents consuming food/potions and similar held items. */
+    @EventHandler public void consume(PlayerItemConsumeEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    /** Full freeze prevents fishing state changes and hook actions. */
+    @EventHandler public void fish(PlayerFishEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    /** Full freeze prevents shearing entities. */
+    @EventHandler public void shear(PlayerShearEntityEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    /** Full freeze prevents changing sneak/sprint state used by gameplay actions. */
+    @EventHandler public void sneak(PlayerToggleSneakEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler public void sprint(PlayerToggleSprintEvent e) {
+        if (plugin.freeze().full(e.getPlayer())) e.setCancelled(true);
     }
 }
