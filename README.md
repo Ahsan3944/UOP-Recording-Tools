@@ -18,6 +18,7 @@ Production-oriented Paper plugin for Minecraft 1.21.11, designed for creator rec
 - `/uop armor delete <name>`
 - `/uop armor give <targets> saved <name>`
 - `/uop armor give <targets> direct <material> <plain|enchanted 1-10|max> [true|false] [weapons...]`
+- `/uop armor remove <targets>`
 - `/uop armor weapon set <targets> <plain|enchanted 1-10|max> <weapons...>`
 
 Materials: leather, chainmail, iron, gold, diamond, netherite.
@@ -36,12 +37,14 @@ Weapons/tools: sword, mace, axe, bow, crossbow, trident, pickaxe, shovel, hoe.
 - `/uop damage incoming <player> <0-10>`
 - `/uop damage set <attacker> <victim> <0-10>`
 - `/uop damage reset <global|outgoing|incoming|pair|all> [player] [victim]`
+- Compatibility form: `/uop damage reset @a` is treated as `/uop damage reset all`.
 
 Priority is exact pair > outgoing > incoming > global. A zero multiplier changes damage to zero without cancelling the underlying damage event, preserving mechanics such as Wind Charge propulsion.
 
 ### Enchant / Disenchant
 - `/uop enchant <all|armor|equipment|mainhand|offhand|inventory> <targets> <enchantment> [level]`
 - `/uop disenchant <all|armor|equipment|hand|inventory> <targets> <enchantment>`
+- `/uop disenchant equipment <target> <slot> <enchantment>` where slot is `mainhand`, `offhand`, `head|helmet`, `chest|chestplate`, `legs|leggings`, or `feet|boots`.
 - The `armor` scope accepts a slot selector where applicable.
 - The `hand` disenchant scope accepts `mainhand` or `offhand` as its slot selector.
 - Enchantment levels are validated to 1-255 and cannot exceed the enchantment's native maximum.
