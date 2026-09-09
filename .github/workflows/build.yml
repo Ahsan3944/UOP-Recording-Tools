@@ -28,9 +28,16 @@ jobs:
           unzip -l "$jar" | grep -Fq 'com/uop/recordingtools/UopRecordingToolsPlugin.class'
           unzip -p "$jar" plugin.yml | grep -Fq 'api-version: '\''1.21.11'\'''
           unzip -p "$jar" plugin.yml | grep -Fq 'main: com.uop.recordingtools.UopRecordingToolsPlugin'
-      - name: Upload plugin JAR
+      - name: Generate SHA-256 checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum build/libs/*.jar > build/libs/SHA256SUMS.txt
+      - name: Upload plugin package
         uses: actions/upload-artifact@v4
         with:
           name: uop-recording-tools-${{ github.sha }}
-          path: build/libs/*.jar
+          path: |
+            build/libs/*.jar
+            build/libs/SHA256SUMS.txt
           if-no-files-found: error
