@@ -17,6 +17,17 @@ jobs:
         with:
           gradle-version: '9.5.1'
       - run: gradle clean build --no-daemon --stacktrace
+      - name: Validate plugin JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          jars=(build/libs/*.jar)
+          test "${#jars[@]}" -eq 1
+          jar="${jars[0]}"
+          unzip -l "$jar" | grep -Fq 'plugin.yml'
+          unzip -l "$jar" | grep -Fq 'com/uop/recordingtools/UopRecordingToolsPlugin.class'
+          unzip -p "$jar" plugin.yml | grep -Fq 'api-version: '\''1.21.11'\'''
+          unzip -p "$jar" plugin.yml | grep -Fq 'main: com.uop.recordingtools.UopRecordingToolsPlugin'
       - name: Upload plugin JAR
         uses: actions/upload-artifact@v4
         with:
